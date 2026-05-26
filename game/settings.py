@@ -119,6 +119,34 @@ COLOUR_COVER_FULL:     tuple[int, int, int] = (  0, 200,   0)   # green — full
 COLOUR_COVER_PARTIAL:  tuple[int, int, int] = (200, 200,   0)   # yellow — partial cover
 
 # ---------------------------------------------------------------------------
+# Dealer (enemy NPC)
+# ---------------------------------------------------------------------------
+DEALER1_WIDTH:          int   = 18
+DEALER1_HEIGHT:         int   = 40
+DEALER1_HEAD_RADIUS:    int   = 10
+DEALER1_HEAD_OFFSET:    int   =  8    # px above body top-edge to head centre
+DEALER1_SPEED_PATROL:   float = 70.0  # px/s — slow deliberate patrol
+DEALER1_BODY_COLOUR:    tuple[int, int, int] = ( 55,  55,  88)  # dark blue-grey
+DEALER1_HEAD_COLOUR:    tuple[int, int, int] = (200, 160, 120)  # warm skin tone
+
+# Vision cone
+VISION_CONE_RANGE:      float = 220.0  # px
+VISION_CONE_HALF_ANGLE: float = 50.0   # degrees — half of total FOV (100° wide)
+VISION_CONE_COLOUR:     tuple[int, int, int] = (255, 240, 100)  # warm yellow
+VISION_CONE_ALPHA:      int   = 65     # 0-255
+
+WAYPOINT_REACH_DIST:    float = 12.0   # px — close enough to "arrive" at waypoint
+
+# Dealer 1 patrol circuit — left side of map, below stone wall
+DEALER1_PATROL_WAYPOINTS: list[tuple[int, int]] = [
+    (120, 680),  # entry road, bottom-left
+    ( 80, 500),  # up the left edge
+    ( 80, 440),  # just below wall
+    (380, 440),  # along wall toward left gap
+    (380, 600),  # back down right side of patrol area
+]
+
+# ---------------------------------------------------------------------------
 # Debug
 # ---------------------------------------------------------------------------
 DEBUG_DRAW_HITBOXES: bool = True   # draw tractor rect outline in debug mode

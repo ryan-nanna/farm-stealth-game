@@ -8,11 +8,13 @@ import sys
 import pygame
 
 from game.settings import (
+    DEALER1_PATROL_WAYPOINTS,
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
     TARGET_FPS,
     WINDOW_TITLE,
 )
+from game.entities.dealer import Dealer
 from game.entities.tractor import Tractor
 from game.level import Level
 from game.systems.input import Action, InputManager
@@ -27,6 +29,7 @@ def main() -> None:
     clock: pygame.time.Clock = pygame.time.Clock()
     input_manager = InputManager()
     level         = Level()
+    dealer        = Dealer(waypoints=DEALER1_PATROL_WAYPOINTS)
     tractor       = Tractor()
 
     # Small debug font — shows controller status and speed mode in the corner
@@ -50,12 +53,14 @@ def main() -> None:
             running = False
 
         # --- Logic ---
+        dealer.update(dt)
         tractor.update(inp, dt, level.wall_rects, level.full_cover_rects, level.partial_cover_rects)
 
         # --- Draw ---
         level.draw_ground(screen)
+        dealer.draw(screen)   # cone drawn first (inside dealer.draw), then body
         tractor.draw(screen)
-        level.draw_canopies(screen)  # canopies layer over the tractor for the hiding visual
+        level.draw_canopies(screen)
 
         # Debug overlay — controller + silent mode status
         _draw_debug_hud(screen, font, input_manager, tractor, clock)
