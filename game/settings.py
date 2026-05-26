@@ -155,6 +155,11 @@ DEALER_ALERT_TIME:      float = 1.5     # s of continuous sight before CHASE
 DEALER_CHASE_TIME:      float = 3.0     # s of active CHASE before SEARCHING
 DEALER_SEARCH_TIME:     float = 3.5     # s of SEARCHING before resuming PATROL
 
+# Round escalation — applied per completed round (capped at ESCALATION_MAX_ROUNDS)
+ESCALATION_SPEED_PER_ROUND:  float = 15.0   # px/s added to both patrol and chase speeds
+ESCALATION_VISION_PER_ROUND: float = 25.0   # px added to vision cone range
+ESCALATION_MAX_ROUNDS:       int   = 5       # escalation stops growing after this round
+
 # Dealer cone colours per alert level (PATROL uses the existing VISION_CONE_COLOUR)
 DEALER_CONE_SUSPICIOUS: tuple[int, int, int] = (255, 160,  40)  # orange
 DEALER_CONE_ALERT:      tuple[int, int, int] = (255,  50,  50)  # red
@@ -187,6 +192,21 @@ COLOUR_BAR_FILL:    tuple[int, int, int] = ( 80, 200,  80)  # pigs — green
 COLOUR_BAR_PEAK:    tuple[int, int, int] = (255, 220,  50)  # cows peak zone — yellow
 COLOUR_BAR_WHISPER: tuple[int, int, int] = ( 80, 160, 255)  # scarecrow — blue
 COLOUR_BAR_BORDER:  tuple[int, int, int] = (200, 200, 200)
+
+# ---------------------------------------------------------------------------
+# Gramps (barn NPC — win-condition anchor)
+# ---------------------------------------------------------------------------
+GRAMPS_WIDTH:        int = 22
+GRAMPS_HEIGHT:       int = 38
+GRAMPS_HEAD_RADIUS:  int = 11
+GRAMPS_HEAD_OFFSET:  int =  8    # px above body top-edge to head centre
+GRAMPS_BODY_COLOUR:  tuple[int, int, int] = (110,  85,  60)  # dark overalls
+GRAMPS_HEAD_COLOUR:  tuple[int, int, int] = (220, 175, 130)  # warm skin
+GRAMPS_HAT_COLOUR:   tuple[int, int, int] = ( 80,  55,  30)  # straw hat brim
+
+# Gramps stands just inside the barn entrance (south-centre of barn rect)
+GRAMPS_SPAWN_X: int = 1162   # MAP_BARN_RECT x=1060, w=205 → centre=1162
+GRAMPS_SPAWN_Y: int = 120    # MAP_BARN_RECT y=15, h=150 → 2/3 down = ~115
 
 # ---------------------------------------------------------------------------
 # Debug

@@ -34,6 +34,7 @@ from game.settings import (
     VISION_CONE_HALF_ANGLE,
     VISION_CONE_RANGE,
     WAYPOINT_REACH_DIST,
+    MAP_ENTRY_Y,
 )
 from game.systems.detection import dealer_hears_noise, tractor_in_cone
 from game.systems.state_machine import StateMachine
@@ -55,7 +56,13 @@ class Dealer:
     enough to the tractor during CHASE.
     """
 
-    def __init__(self, waypoints: list[tuple[int, int]]) -> None:
+    def __init__(
+        self,
+        waypoints:    list[tuple[int, int]],
+        patrol_speed: float = DEALER1_SPEED_PATROL,
+        chase_speed:  float = DEALER1_SPEED_CHASE,
+        vision_range: float = VISION_CONE_RANGE,
+    ) -> None:
         start = waypoints[0]
         self.rect: pygame.Rect = pygame.Rect(
             start[0] - DEALER1_WIDTH  // 2,
@@ -69,6 +76,10 @@ class Dealer:
         self.waypoints: list[tuple[int, int]] = waypoints
         self._waypoint_index: int = 0
         self._facing_angle: float = 0.0
+
+        self._patrol_speed: float = patrol_speed
+        self._chase_speed:  float = chase_speed
+        self._vision_range: float = vision_range
 
         self._sm: StateMachine[DealerState] = StateMachine(DealerState.PATROL)
 
@@ -104,7 +115,7 @@ class Dealer:
         can_see = tractor_in_cone(
             dealer_center,
             self._facing_angle,
-            VISION_CONE_RANGE,
+            self._vision_range,
             VISION_CONE_HALF_ANGLE,
             tractor_rect,
             full_cover_rects,
@@ -152,7 +163,7 @@ class Dealer:
         elif state == DealerState.CHASE:
             if can_see:
                 self._last_seen = tractor_center
-            self._move_toward(dt, self._last_seen, DEALER1_SPEED_CHASE)
+            self._move_toward(dt, self._last_seen, self._chase_speed)
             dist = math.hypot(
                 tractor_center[0] - dealer_center[0],
                 tractor_center[1] - dealer_center[1],
@@ -163,7 +174,7 @@ class Dealer:
                 self._sm.transition(DealerState.SEARCHING)
 
         elif state == DealerState.SEARCHING:
-            self._move_toward(dt, self._last_seen, DEALER1_SPEED_PATROL)
+            self._move_toward(dt, self._last_seen, self._patrol_speed)
             dist = math.hypot(
                 self._last_seen[0] - dealer_center[0],
                 self._last_seen[1] - dealer_center[1],
@@ -174,7 +185,10 @@ class Dealer:
                 self._last_seen = tractor_center
                 self._sm.transition(DealerState.ALERT)
 
-        # LEAVING: stubbed, no behaviour yet
+        elif state == DealerState.LEAVING:
+            # Walk off the bottom of the map toward the dealer entry road
+            exit_target = (self.rect.centerx, MAP_ENTRY_Y + 60)
+            self._move_toward(dt, exit_target, self._patrol_speed)
 
     # ------------------------------------------------------------------
     # Movement helpers
@@ -189,8 +203,8 @@ class Dealer:
             self._waypoint_index = (self._waypoint_index + 1) % len(self.waypoints)
         else:
             self._facing_angle = math.degrees(math.atan2(dy, dx))
-            self._x += (dx / dist) * DEALER1_SPEED_PATROL * dt
-            self._y += (dy / dist) * DEALER1_SPEED_PATROL * dt
+            self._x += (dx / dist) * self._patrol_speed * dt
+            self._y += (dy / dist) * self._patrol_speed * dt
             self.rect.x = int(self._x)
             self.rect.y = int(self._y)
 
@@ -239,8 +253,8 @@ class Dealer:
             t = -half_rad + (2 * half_rad * i / arc_steps)
             a = angle_rad + t
             points.append((
-                origin[0] + math.cos(a) * VISION_CONE_RANGE,
-                origin[1] + math.sin(a) * VISION_CONE_RANGE,
+                origin[0] + math.cos(a) * self._vision_range,
+                origin[1] + math.sin(a) * self._vision_range,
             ))
 
         pygame.draw.polygon(self._vision_surf, (*colour, VISION_CONE_ALPHA), points)
@@ -261,6 +275,15 @@ class Dealer:
     # ------------------------------------------------------------------
     # Properties
     # ------------------------------------------------------------------
+
+    def leave(self) -> None:
+        """Trigger the LEAVING walk-off animation (called when round is won)."""
+        if self._sm.state != DealerState.LEAVING:
+            self._sm.transition(DealerState.LEAVING)
+
+    @property
+    def is_offscreen(self) -> bool:
+        return self.rect.top > SCREEN_HEIGHT
 
     @property
     def center(self) -> tuple[int, int]:
