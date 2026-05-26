@@ -1,8 +1,5 @@
 # main.py
 # Entry point. Run with:  py -3.12 main.py
-#
-# Session 1 scope: tractor moves on screen, keyboard + USB NES controller.
-# No map, no enemies, no objectives yet — just proving the input pipeline works.
 
 from __future__ import annotations
 
@@ -11,15 +8,13 @@ import sys
 import pygame
 
 from game.settings import (
-    COLOUR_GRASS_GREEN,
-    COLOUR_SKY_BLUE,
-    COLOUR_WHITE,
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
     TARGET_FPS,
     WINDOW_TITLE,
 )
 from game.entities.tractor import Tractor
+from game.level import Level
 from game.systems.input import Action, InputManager
 
 
@@ -31,6 +26,7 @@ def main() -> None:
 
     clock: pygame.time.Clock = pygame.time.Clock()
     input_manager = InputManager()
+    level         = Level()
     tractor       = Tractor()
 
     # Small debug font — shows controller status and speed mode in the corner
@@ -54,14 +50,10 @@ def main() -> None:
             running = False
 
         # --- Logic ---
-        tractor.update(inp, dt)
+        tractor.update(inp, dt, level.wall_rects)
 
         # --- Draw ---
-        # Simple placeholder background: sky on top third, grass below
-        screen.fill(COLOUR_SKY_BLUE)
-        grass_rect = pygame.Rect(0, SCREEN_HEIGHT // 3, SCREEN_WIDTH, SCREEN_HEIGHT * 2 // 3)
-        pygame.draw.rect(screen, COLOUR_GRASS_GREEN, grass_rect)
-
+        level.draw(screen)
         tractor.draw(screen)
 
         # Debug overlay — controller + silent mode status

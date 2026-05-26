@@ -63,6 +63,59 @@ CONTROLLER_BUTTON_START:  int = 9   # Start
 CONTROLLER_BUTTON_SELECT: int = 8   # Select
 
 # ---------------------------------------------------------------------------
+# Farm Map — zone positions as (x, y, width, height) tuples
+# ---------------------------------------------------------------------------
+
+# Safe zone / win condition (top-right)
+MAP_BARN_RECT:         tuple[int, int, int, int] = (1060,  15, 205, 150)
+
+# Objective zone 2 — cow pasture (top-left)
+MAP_COW_PASTURE_RECT:  tuple[int, int, int, int] = (  15,  15, 250, 175)
+
+# Full-cover hiding spots
+MAP_APPLE_TREE_RECT:   tuple[int, int, int, int] = ( 555,  20, 100, 100)
+MAP_OAK_TREE_RECT:     tuple[int, int, int, int] = (  30, 215, 110, 110)
+MAP_CHICKEN_COOP_RECT: tuple[int, int, int, int] = (  35, 525, 165, 120)
+MAP_OLD_SHED_RECT:     tuple[int, int, int, int] = ( 535, 515, 185, 140)
+MAP_PIG_PEN_RECT:      tuple[int, int, int, int] = (1060, 480, 210, 195)  # objective 1
+
+# Partial-cover / objective zones
+MAP_SCARECROW_RECT:    tuple[int, int, int, int] = ( 600, 255,  55,  80)  # objective 3
+MAP_WELL_RECT:         tuple[int, int, int, int] = ( 775, 530,  90,  65)
+
+# Stone wall — three segments across mid-map at y=370.
+# Passage gaps: x=265–435 (170 px wide) and x=885–1035 (150 px wide).
+MAP_WALL_LEFT_RECT:    tuple[int, int, int, int] = (   0, 370, 265,  30)
+MAP_WALL_CENTRE_RECT:  tuple[int, int, int, int] = ( 435, 370, 450,  30)
+MAP_WALL_RIGHT_RECT:   tuple[int, int, int, int] = (1035, 370, 245,  30)
+
+# Dirt paths through the wall gaps (drawn as ground-level trails)
+MAP_PATH_LEFT_RECT:    tuple[int, int, int, int] = ( 305, 190,  80, 180)  # pasture→wall
+MAP_PATH_RIGHT_RECT:   tuple[int, int, int, int] = ( 895, 165,  85, 315)  # barn→pig pen
+
+# Dealer entry road (bottom of screen)
+MAP_ENTRY_Y:           int = 680
+MAP_ENTRY_HEIGHT:      int = 40
+
+# ---------------------------------------------------------------------------
+# Farm Map — feature colours
+# ---------------------------------------------------------------------------
+COLOUR_STONE:          tuple[int, int, int] = (148, 143, 136)   # stone wall body
+COLOUR_TREE_TRUNK:     tuple[int, int, int] = (120,  85,  50)   # tree trunk / wood
+COLOUR_TREE_CANOPY:    tuple[int, int, int] = ( 58, 130,  40)   # tree foliage
+COLOUR_PASTURE:        tuple[int, int, int] = (112, 188,  78)   # bright cow-pasture grass
+COLOUR_PIG_PEN:        tuple[int, int, int] = (195, 165, 130)   # muddy pen ground
+COLOUR_FENCE:          tuple[int, int, int] = (185, 155, 100)   # tan wood fence
+COLOUR_SHED:           tuple[int, int, int] = (145, 120,  85)   # weathered shed wood
+COLOUR_COOP:           tuple[int, int, int] = (205, 185, 145)   # light chicken-coop wood
+COLOUR_WELL:           tuple[int, int, int] = (110, 100,  90)   # dark stone well
+COLOUR_WOOD_DARK:      tuple[int, int, int] = ( 95,  65,  35)   # dark wood (doors)
+
+# Debug: cover-zone outline colours (used when DEBUG_DRAW_HITBOXES is True)
+COLOUR_COVER_FULL:     tuple[int, int, int] = (  0, 200,   0)   # green — full cover
+COLOUR_COVER_PARTIAL:  tuple[int, int, int] = (200, 200,   0)   # yellow — partial cover
+
+# ---------------------------------------------------------------------------
 # Debug
 # ---------------------------------------------------------------------------
 DEBUG_DRAW_HITBOXES: bool = True   # draw tractor rect outline in debug mode

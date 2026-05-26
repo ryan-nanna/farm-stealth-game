@@ -1,6 +1,6 @@
 # game/entities/tractor.py
 # Tractor: the player-controlled entity.
-# Session 1 scope: movement + screen-boundary clamping, drawn as coloured shapes.
+# Movement, screen-boundary clamping, wall collision, drawn as coloured shapes.
 # Hiding state, noise system, and sprite art are added in later sessions.
 
 from __future__ import annotations
@@ -56,10 +56,11 @@ class Tractor:
     # Update
     # ------------------------------------------------------------------
 
-    def update(self, input_state: InputState, dt: float) -> None:
+    def update(self, input_state: InputState, dt: float, wall_rects: list[pygame.Rect]) -> None:
         """
-        Move the tractor based on this frame's abstract input.
-        dt is the delta-time in seconds from the game clock.
+        Move the tractor based on this frame's abstract input, then resolve
+        wall collisions per-axis so the tractor slides along walls rather than
+        stopping dead. dt is delta-time in seconds.
         """
         self.silent_mode = input_state.is_held(Action.B)
 
@@ -72,19 +73,29 @@ class Tractor:
         if magnitude > 0:
             dx /= magnitude
             dy /= magnitude
-            # Track facing direction for the headlight visual
             self._facing_angle = math.degrees(math.atan2(dy, dx))
 
-        self._x += dx * speed * dt
-        self._y += dy * speed * dt
-
-        # Clamp to screen bounds
-        self._x = max(0.0, min(self._x, SCREEN_WIDTH  - TRACTOR_WIDTH))
-        self._y = max(0.0, min(self._y, SCREEN_HEIGHT - TRACTOR_HEIGHT))
-
-        # Sync rect to float position
+        # --- X axis: move, clamp, then resolve wall collisions ---
+        self._x = max(0.0, min(self._x + dx * speed * dt, SCREEN_WIDTH - TRACTOR_WIDTH))
         self.rect.x = int(self._x)
+        for wall in wall_rects:
+            if self.rect.colliderect(wall):
+                if dx > 0:
+                    self.rect.right = wall.left
+                elif dx < 0:
+                    self.rect.left = wall.right
+                self._x = float(self.rect.x)
+
+        # --- Y axis: move, clamp, then resolve wall collisions ---
+        self._y = max(0.0, min(self._y + dy * speed * dt, SCREEN_HEIGHT - TRACTOR_HEIGHT))
         self.rect.y = int(self._y)
+        for wall in wall_rects:
+            if self.rect.colliderect(wall):
+                if dy > 0:
+                    self.rect.bottom = wall.top
+                elif dy < 0:
+                    self.rect.top = wall.bottom
+                self._y = float(self.rect.y)
 
     # ------------------------------------------------------------------
     # Draw
