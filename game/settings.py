@@ -209,6 +209,19 @@ GRAMPS_SPAWN_X: int = 1162   # MAP_BARN_RECT x=1060, w=205 → centre=1162
 GRAMPS_SPAWN_Y: int = 120    # MAP_BARN_RECT y=15, h=150 → 2/3 down = ~115
 
 # ---------------------------------------------------------------------------
+# Intel mini-map overlay (shown when scarecrow intel is active)
+# ---------------------------------------------------------------------------
+MINIMAP_W:             int   = 192
+MINIMAP_H:             int   = 108    # 192 × (720/1280) — keeps 16:9 ratio
+MINIMAP_X:             int   = SCREEN_WIDTH - MINIMAP_W - 10   # right-aligned
+MINIMAP_Y:             int   = 108    # below objective checklist
+MINIMAP_SCALE:         float = 192.0 / SCREEN_WIDTH             # ≈ 0.15
+MINIMAP_BG_COLOUR:     tuple[int, int, int] = ( 15,  15,  20)
+MINIMAP_BORDER_COLOUR: tuple[int, int, int] = ( 80, 200, 255)   # cyan
+MINIMAP_DEALER_COLOUR: tuple[int, int, int] = (230,  60,  60)   # red
+MINIMAP_TRACTOR_COLOUR:tuple[int, int, int] = (200, 195, 190)   # light grey
+
+# ---------------------------------------------------------------------------
 # Debug
 # ---------------------------------------------------------------------------
 DEBUG_DRAW_HITBOXES: bool = True   # draw tractor rect outline in debug mode

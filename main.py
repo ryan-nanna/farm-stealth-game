@@ -137,9 +137,9 @@ def main() -> None:
         level.draw_canopies(screen)
 
         if game_state == GameState.PLAYING:
-            hud.draw(screen, obj_manager)
+            hud.draw(screen, obj_manager, tractor.noise_colour, tractor.rect.center, dealer.rect.center)
         elif game_state == GameState.WIN:
-            hud.draw(screen, obj_manager)
+            hud.draw(screen, obj_manager, tractor.noise_colour, tractor.rect.center, dealer.rect.center)
             win_screen.draw(screen, round_num)
         elif game_state == GameState.CAUGHT:
             caught_screen.draw(screen)
