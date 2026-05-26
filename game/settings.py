@@ -169,6 +169,26 @@ DEALER1_PATROL_WAYPOINTS: list[tuple[int, int]] = [
 ]
 
 # ---------------------------------------------------------------------------
+# Objectives and TimingBar
+# ---------------------------------------------------------------------------
+OBJ_PIGS_HOLD_TIME:       float = 3.0   # seconds to fill the pig-pen bar
+OBJ_COWS_OSCILLATE_SPEED: float = 0.8   # bar oscillation cycles per second
+OBJ_COWS_SUCCESS_MIN:     float = 0.75  # bar progress must be >= this for a successful A press
+OBJ_SCARECROW_HOLD_TIME:  float = 2.0   # seconds to hold A for the scarecrow whisper
+OBJ_INTEL_DURATION:       float = 10.0  # seconds the scarecrow intel overlay stays active
+
+TIMING_BAR_W:   int = 260
+TIMING_BAR_H:   int = 24
+TIMING_BAR_X:   int = (SCREEN_WIDTH - 260) // 2
+TIMING_BAR_Y:   int = SCREEN_HEIGHT - 80
+
+COLOUR_BAR_BG:      tuple[int, int, int] = ( 30,  30,  30)
+COLOUR_BAR_FILL:    tuple[int, int, int] = ( 80, 200,  80)  # pigs — green
+COLOUR_BAR_PEAK:    tuple[int, int, int] = (255, 220,  50)  # cows peak zone — yellow
+COLOUR_BAR_WHISPER: tuple[int, int, int] = ( 80, 160, 255)  # scarecrow — blue
+COLOUR_BAR_BORDER:  tuple[int, int, int] = (200, 200, 200)
+
+# ---------------------------------------------------------------------------
 # Debug
 # ---------------------------------------------------------------------------
 DEBUG_DRAW_HITBOXES: bool = True   # draw tractor rect outline in debug mode
