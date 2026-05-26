@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import sys
+from enum import Enum, auto
 
 import pygame
 
@@ -18,6 +19,12 @@ from game.entities.dealer import Dealer
 from game.entities.tractor import Tractor
 from game.level import Level
 from game.systems.input import Action, InputManager
+from game.ui.screens import CaughtScreen
+
+
+class GameState(Enum):
+    PLAYING = auto()
+    CAUGHT  = auto()
 
 
 def main() -> None:
@@ -29,8 +36,10 @@ def main() -> None:
     clock: pygame.time.Clock = pygame.time.Clock()
     input_manager = InputManager()
     level         = Level()
+    caught_screen = CaughtScreen()
     dealer        = Dealer(waypoints=DEALER1_PATROL_WAYPOINTS)
     tractor       = Tractor()
+    game_state    = GameState.PLAYING
 
     # Small debug font — shows controller status and speed mode in the corner
     font = pygame.font.SysFont("Arial", 18)
@@ -53,17 +62,32 @@ def main() -> None:
             running = False
 
         # --- Logic ---
-        dealer.update(dt)
-        tractor.update(inp, dt, level.wall_rects, level.full_cover_rects, level.partial_cover_rects)
+        if game_state == GameState.PLAYING:
+            dealer.update(
+                dt, tractor.rect, tractor.noise_radius,
+                level.full_cover_rects, level.partial_cover_rects,
+            )
+            tractor.update(inp, dt, level.wall_rects, level.full_cover_rects, level.partial_cover_rects)
 
-        # --- Draw ---
+            if dealer.caught_tractor:
+                game_state = GameState.CAUGHT
+
+        elif game_state == GameState.CAUGHT:
+            if inp.pressed(Action.A) or inp.pressed(Action.START):
+                dealer     = Dealer(waypoints=DEALER1_PATROL_WAYPOINTS)
+                tractor    = Tractor()
+                game_state = GameState.PLAYING
+
+        # --- Draw (game world always visible, caught screen overlays on top) ---
         level.draw_ground(screen)
-        dealer.draw(screen)   # cone drawn first (inside dealer.draw), then body
+        dealer.draw(screen)
         tractor.draw(screen)
         level.draw_canopies(screen)
 
-        # Debug overlay — controller + silent mode status
-        _draw_debug_hud(screen, font, input_manager, tractor, clock)
+        if game_state == GameState.CAUGHT:
+            caught_screen.draw(screen)
+
+        _draw_debug_hud(screen, font, input_manager, tractor, dealer, clock)
 
         pygame.display.flip()
 
@@ -76,24 +100,21 @@ def _draw_debug_hud(
     font:          pygame.font.Font,
     input_manager: InputManager,
     tractor:       Tractor,
+    dealer:        Dealer,
     clock:         pygame.time.Clock,
 ) -> None:
     """
     Minimal on-screen info while there's no real HUD yet.
     Displayed in the top-left corner; will be removed once hud.py exists.
     """
-    if tractor.is_hidden:
-        cover_label = "HIDDEN"
-    elif tractor.in_partial_cover:
-        cover_label = "partial"
-    else:
-        cover_label = "exposed"
+    cover_label = "HIDDEN" if tractor.is_hidden else "partial" if tractor.in_partial_cover else "exposed"
 
     lines = [
         f"FPS: {clock.get_fps():.0f}",
         f"Pos: {tractor.rect.x}, {tractor.rect.y}",
-        f"Cover: {cover_label}",
+        f"Cover: {cover_label}  Noise r: {int(tractor.noise_radius)}",
         f"Silent: {'ON' if tractor.silent_mode else 'off'}",
+        f"Dealer: {dealer.state.name}",
         f"Controller: {input_manager._joystick.get_name() if input_manager._joystick else 'keyboard only'}",
         "",
         "Arrow keys / D-pad: move",

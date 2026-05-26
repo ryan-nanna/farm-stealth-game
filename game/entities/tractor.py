@@ -12,8 +12,14 @@ import pygame
 from game.settings import (
     COLOUR_COVER_FULL,
     COLOUR_COVER_PARTIAL,
+    COLOUR_NOISE_FAST,
+    COLOUR_NOISE_SLOW,
+    COLOUR_NOISE_STILL,
     DEBUG_COLOUR,
     DEBUG_DRAW_HITBOXES,
+    NOISE_RADIUS_FAST,
+    NOISE_RADIUS_SLOW,
+    NOISE_RADIUS_STILL,
     SCREEN_HEIGHT,
     SCREEN_WIDTH,
     TRACTOR_BODY_COLOUR,
@@ -59,8 +65,13 @@ class Tractor:
         self.is_hidden: bool = False         # inside full-cover zone (invisible to dealers)
         self.in_partial_cover: bool = False  # inside partial-cover zone (60% vision reduction)
 
+        # Noise state — updated each frame; read by dealers via dealer.update()
+        self.noise_radius: float = 0.0
+        self.noise_colour: tuple[int, int, int] | None = None
+
         # Facing direction in degrees: 0 = right, 90 = down (used for headlight drawing)
         self._facing_angle: float = 0.0
+        self._pulse: float = 0.0   # drives the animated noise ring
 
     # ------------------------------------------------------------------
     # Update
@@ -82,7 +93,8 @@ class Tractor:
 
         speed = TRACTOR_SPEED_SILENT if self.silent_mode else TRACTOR_SPEED_NORMAL
 
-        dx, dy = input_state.move_vector
+        dx, dy    = input_state.move_vector
+        is_moving = dx != 0.0 or dy != 0.0
 
         # Normalise diagonal movement so you don't go faster on diagonals
         magnitude = math.hypot(dx, dy)
@@ -118,12 +130,34 @@ class Tractor:
             self.rect, full_cover_rects, partial_cover_rects
         )
 
+        # --- Noise level ---
+        self._pulse += dt * 4.0  # ~0.64 Hz pulse cycle
+        if self.is_hidden and not is_moving:
+            self.noise_radius = 0.0
+            self.noise_colour = None
+        elif is_moving:
+            if self.silent_mode:
+                self.noise_radius = NOISE_RADIUS_SLOW
+                self.noise_colour = COLOUR_NOISE_SLOW
+            else:
+                self.noise_radius = NOISE_RADIUS_FAST
+                self.noise_colour = COLOUR_NOISE_FAST
+        else:
+            # Still and exposed — green ring, dealers do not react
+            self.noise_radius = NOISE_RADIUS_STILL
+            self.noise_colour = COLOUR_NOISE_STILL
+
     # ------------------------------------------------------------------
     # Draw
     # ------------------------------------------------------------------
 
     def draw(self, surface: pygame.Surface) -> None:
         """Render the tractor as coloured shapes (no sprite art yet)."""
+        # --- Noise ring (drawn first, behind the tractor body) ---
+        if self.noise_colour is not None and self.noise_radius > 0:
+            pulse_r = max(1, int(self.noise_radius + math.sin(self._pulse) * 8))
+            pygame.draw.circle(surface, self.noise_colour, self.rect.center, pulse_r, 2)
+
         # --- Body ---
         pygame.draw.rect(surface, TRACTOR_BODY_COLOUR, self.rect, border_radius=8)
 

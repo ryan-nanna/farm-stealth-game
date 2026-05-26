@@ -45,6 +45,13 @@ TRACTOR_WHEEL_COLOUR:        tuple[int, int, int] = ( 50,  48,  44)
 TRACTOR_WHEEL_RADIUS:        int = 7
 TRACTOR_COVER_RING_WIDTH:    int = 3   # pixel width of the cover-state outline ring
 
+# Noise radii (pixels) — tractor emits noise proportional to movement state.
+# Still + exposed: ring is drawn but dealers do NOT react (green = safe).
+# Slow / fast movement: dealers within the radius hear the tractor.
+NOISE_RADIUS_STILL: float =  50.0
+NOISE_RADIUS_SLOW:  float =  80.0   # silent-mode movement (amber)
+NOISE_RADIUS_FAST:  float = 160.0   # normal movement (red)
+
 # Starting position — top-right area near barn
 TRACTOR_SPAWN_X: int = SCREEN_WIDTH  - 120
 TRACTOR_SPAWN_Y: int = 80
@@ -136,6 +143,21 @@ VISION_CONE_COLOUR:     tuple[int, int, int] = (255, 240, 100)  # warm yellow
 VISION_CONE_ALPHA:      int   = 65     # 0-255
 
 WAYPOINT_REACH_DIST:    float = 12.0   # px — close enough to "arrive" at waypoint
+
+# Detection
+PARTIAL_COVER_RANGE_MULT: float = 0.4   # vision range × this in partial cover (60% reduction)
+DEALER_CATCH_DIST:        float = 40.0  # px — dealer catches tractor when this close during CHASE
+
+# Dealer AI speeds and state timers
+DEALER1_SPEED_CHASE:    float = 150.0   # px/s — roughly 2× patrol speed
+DEALER_SUSPICIOUS_TIME: float = 2.0     # s in SUSPICIOUS before giving up
+DEALER_ALERT_TIME:      float = 1.5     # s of continuous sight before CHASE
+DEALER_CHASE_TIME:      float = 3.0     # s of active CHASE before SEARCHING
+DEALER_SEARCH_TIME:     float = 3.5     # s of SEARCHING before resuming PATROL
+
+# Dealer cone colours per alert level (PATROL uses the existing VISION_CONE_COLOUR)
+DEALER_CONE_SUSPICIOUS: tuple[int, int, int] = (255, 160,  40)  # orange
+DEALER_CONE_ALERT:      tuple[int, int, int] = (255,  50,  50)  # red
 
 # Dealer 1 patrol circuit — left side of map, below stone wall
 DEALER1_PATROL_WAYPOINTS: list[tuple[int, int]] = [
