@@ -50,11 +50,12 @@ def main() -> None:
             running = False
 
         # --- Logic ---
-        tractor.update(inp, dt, level.wall_rects)
+        tractor.update(inp, dt, level.wall_rects, level.full_cover_rects, level.partial_cover_rects)
 
         # --- Draw ---
-        level.draw(screen)
+        level.draw_ground(screen)
         tractor.draw(screen)
+        level.draw_canopies(screen)  # canopies layer over the tractor for the hiding visual
 
         # Debug overlay — controller + silent mode status
         _draw_debug_hud(screen, font, input_manager, tractor, clock)
@@ -76,9 +77,17 @@ def _draw_debug_hud(
     Minimal on-screen info while there's no real HUD yet.
     Displayed in the top-left corner; will be removed once hud.py exists.
     """
+    if tractor.is_hidden:
+        cover_label = "HIDDEN"
+    elif tractor.in_partial_cover:
+        cover_label = "partial"
+    else:
+        cover_label = "exposed"
+
     lines = [
         f"FPS: {clock.get_fps():.0f}",
         f"Pos: {tractor.rect.x}, {tractor.rect.y}",
+        f"Cover: {cover_label}",
         f"Silent: {'ON' if tractor.silent_mode else 'off'}",
         f"Controller: {input_manager._joystick.get_name() if input_manager._joystick else 'keyboard only'}",
         "",

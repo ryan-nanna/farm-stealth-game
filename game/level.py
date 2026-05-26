@@ -1,7 +1,7 @@
 # game/level.py
 # Static farm map: geometry, cover zones, objective zones, and rendering.
-# Session 2 scope: background + all map features drawn as coloured shapes;
-# wall_rects exposed so tractor/dealer movement can resolve collisions.
+# draw_ground() is called before entities; draw_canopies() is called after,
+# so tree canopies appear in front of the tractor when it hides under them.
 
 from __future__ import annotations
 
@@ -90,14 +90,20 @@ class Level:
         self.pig_pen_rect:     pygame.Rect = pygame.Rect(*MAP_PIG_PEN_RECT)
 
     # ------------------------------------------------------------------
-    # Draw
+    # Draw — two-pass so entities sit between ground and canopy layers
     # ------------------------------------------------------------------
 
-    def draw(self, surface: pygame.Surface) -> None:
+    def draw_ground(self, surface: pygame.Surface) -> None:
+        """Everything drawn before entities: terrain, structures, tree trunks."""
         self._draw_background(surface)
         self._draw_zones(surface)
         self._draw_structures(surface)
-        self._draw_vegetation(surface)
+        self._draw_tree_trunks(surface)
+        self._draw_scarecrow(surface)
+
+    def draw_canopies(self, surface: pygame.Surface) -> None:
+        """Tree canopies drawn after entities, plus debug overlays on top."""
+        self._draw_tree_canopies(surface)
         if DEBUG_DRAW_HITBOXES:
             self._draw_debug_covers(surface)
 
@@ -190,31 +196,29 @@ class Level:
             pygame.draw.rect(surface, COLOUR_DARK_GREY, r, 2)
 
     # ------------------------------------------------------------------
-    # Vegetation (drawn last so canopies sit above structures beneath them)
+    # Vegetation — split into two passes (trunks before entities, canopies after)
     # ------------------------------------------------------------------
 
-    def _draw_vegetation(self, surface: pygame.Surface) -> None:
-        self._draw_tree(surface, MAP_APPLE_TREE_RECT)
-        self._draw_tree(surface, MAP_OAK_TREE_RECT)
-        self._draw_scarecrow(surface)
+    def _draw_tree_trunks(self, surface: pygame.Surface) -> None:
+        for rect_data in (MAP_APPLE_TREE_RECT, MAP_OAK_TREE_RECT):
+            r = pygame.Rect(*rect_data)
+            trunk_w = max(12, r.width // 5)
+            trunk_h = max(18, r.height // 3)
+            trunk = pygame.Rect(r.centerx - trunk_w // 2, r.bottom - trunk_h, trunk_w, trunk_h)
+            pygame.draw.rect(surface, COLOUR_TREE_TRUNK, trunk, border_radius=2)
 
-    def _draw_tree(self, surface: pygame.Surface, rect_data: tuple[int, int, int, int]) -> None:
-        r = pygame.Rect(*rect_data)
-        trunk_w = max(12, r.width // 5)
-        trunk_h = max(18, r.height // 3)
-        trunk = pygame.Rect(r.centerx - trunk_w // 2, r.bottom - trunk_h, trunk_w, trunk_h)
-        pygame.draw.rect(surface, COLOUR_TREE_TRUNK, trunk, border_radius=2)
-
-        radius = min(r.width, r.height) // 2 - 4
-        pygame.draw.circle(surface, COLOUR_TREE_CANOPY, r.center, radius)
-        # Lighter highlight offset toward the upper-left
-        hl_colour = (
-            min(255, COLOUR_TREE_CANOPY[0] + 30),
-            min(255, COLOUR_TREE_CANOPY[1] + 30),
-            min(255, COLOUR_TREE_CANOPY[2] + 10),
-        )
-        hl_pos = (r.centerx - radius // 4, r.centery - radius // 4)
-        pygame.draw.circle(surface, hl_colour, hl_pos, max(4, radius // 3))
+    def _draw_tree_canopies(self, surface: pygame.Surface) -> None:
+        for rect_data in (MAP_APPLE_TREE_RECT, MAP_OAK_TREE_RECT):
+            r = pygame.Rect(*rect_data)
+            radius = min(r.width, r.height) // 2 - 4
+            pygame.draw.circle(surface, COLOUR_TREE_CANOPY, r.center, radius)
+            hl_colour = (
+                min(255, COLOUR_TREE_CANOPY[0] + 30),
+                min(255, COLOUR_TREE_CANOPY[1] + 30),
+                min(255, COLOUR_TREE_CANOPY[2] + 10),
+            )
+            hl_pos = (r.centerx - radius // 4, r.centery - radius // 4)
+            pygame.draw.circle(surface, hl_colour, hl_pos, max(4, radius // 3))
 
     def _draw_scarecrow(self, surface: pygame.Surface) -> None:
         r = pygame.Rect(*MAP_SCARECROW_RECT)

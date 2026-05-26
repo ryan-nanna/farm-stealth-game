@@ -41,6 +41,9 @@ TRACTOR_SPEED_NORMAL: float = 180.0   # pixels per second, normal drive
 TRACTOR_SPEED_SILENT: float =  80.0   # pixels per second, B-button silence mode
 TRACTOR_BODY_COLOUR:         tuple[int, int, int] = COLOUR_WARM_GREY
 TRACTOR_HEADLIGHT_COLOUR:    tuple[int, int, int] = (255, 240, 140)
+TRACTOR_WHEEL_COLOUR:        tuple[int, int, int] = ( 50,  48,  44)
+TRACTOR_WHEEL_RADIUS:        int = 7
+TRACTOR_COVER_RING_WIDTH:    int = 3   # pixel width of the cover-state outline ring
 
 # Starting position — top-right area near barn
 TRACTOR_SPAWN_X: int = SCREEN_WIDTH  - 120
