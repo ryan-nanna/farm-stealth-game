@@ -188,7 +188,7 @@ BOTTOM EDGE: Farm entrance — dealers enter here each round
 | Farmhand     | Objective NPC| Pig pen. Warm and cheerful. Objective 1.           |
 | Farmer       | Objective NPC| Cow pasture. Objective 2.                          |
 | Gramps       | Safe zone    | Red barn. Win condition. Rings bell.               |
-| Hubert       | Villain      | Tall, lanky, beard. Wide vision cone. Slow lurk. Methodical. |
+| Hubert       | Villain      | Long dark hair, bucket hat, denim vest. Wide vision cone. Slow lurk. Methodical. |
 | Hieronymus   | Villain      | One green sock, one red sock. Fast, erratic. Very noise-sensitive. |
 | Scrap Truck  | Villain (opt)| Battered truck circling perimeter. No vision cone — presence creates pressure. Hard mode only. |
 

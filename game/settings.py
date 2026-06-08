@@ -49,8 +49,12 @@ TRACTOR_COVER_RING_WIDTH:    int = 3   # pixel width of the cover-state outline 
 # Still + exposed: ring is drawn but dealers do NOT react (green = safe).
 # Slow / fast movement: dealers within the radius hear the tractor.
 NOISE_RADIUS_STILL: float =  50.0
-NOISE_RADIUS_SLOW:  float =  80.0   # silent-mode movement (amber)
-NOISE_RADIUS_FAST:  float = 160.0   # normal movement (red)
+NOISE_RADIUS_SLOW:  float =  95.0   # silent-mode movement (amber) — audible, but manageable
+NOISE_RADIUS_FAST:  float = 210.0   # normal movement near a dealer = near-certain detection
+
+# Objective completion noise burst — a real tense moment, not cosmetic
+OBJ_BURST_RADIUS:   float = 280.0   # spike radius when an objective completes
+OBJ_BURST_DURATION: float = 1.5     # seconds the spike lasts
 
 # Starting position — top-right area near barn
 TRACTOR_SPAWN_X: int = SCREEN_WIDTH  - 120
@@ -126,59 +130,113 @@ COLOUR_COVER_FULL:     tuple[int, int, int] = (  0, 200,   0)   # green — full
 COLOUR_COVER_PARTIAL:  tuple[int, int, int] = (200, 200,   0)   # yellow — partial cover
 
 # ---------------------------------------------------------------------------
-# Dealer (enemy NPC)
+# Hubert (Dealer 1 — tall, lanky, beard)
 # ---------------------------------------------------------------------------
-DEALER1_WIDTH:          int   = 18
-DEALER1_HEIGHT:         int   = 40
-DEALER1_HEAD_RADIUS:    int   = 10
-DEALER1_HEAD_OFFSET:    int   =  8    # px above body top-edge to head centre
-DEALER1_SPEED_PATROL:   float = 70.0  # px/s — slow deliberate patrol
-DEALER1_BODY_COLOUR:    tuple[int, int, int] = ( 55,  55,  88)  # dark blue-grey
-DEALER1_HEAD_COLOUR:    tuple[int, int, int] = (200, 160, 120)  # warm skin tone
+HUBERT_WIDTH:          int   = 16     # narrower than a regular person — he's lanky
+HUBERT_HEIGHT:         int   = 46     # taller than a regular person
+HUBERT_HEAD_RADIUS:    int   = 10
+HUBERT_HEAD_OFFSET:    int   =  8     # px above body top-edge to head centre
+HUBERT_SPEED_LURK:     float = 70.0   # px/s — slow methodical drift
+HUBERT_SPEED_CHASE:    float = 150.0  # px/s — roughly 2× lurk speed
+# Sprite display size — larger than the hitbox rect so the photo reads clearly on screen
+HUBERT_SPRITE_W: int = 90
+HUBERT_SPRITE_H: int = 110
 
-# Vision cone
+HUBERT_BODY_COLOUR:       tuple[int, int, int] = ( 90, 120, 165)  # denim vest — mid blue (shape fallback)
+HUBERT_HEAD_COLOUR:       tuple[int, int, int] = (200, 160, 120)  # warm skin tone
+HUBERT_HAIR_COLOUR:       tuple[int, int, int] = ( 75,  42,  22)  # dark reddish-brown long hair
+HUBERT_HAT_BRIM_COLOUR:   tuple[int, int, int] = (175, 158, 112)  # dirty tan bucket hat brim
+HUBERT_HAT_CROWN_COLOUR:  tuple[int, int, int] = (148, 132,  88)  # slightly darker hat crown
+
+# Vision cone — Hubert has a wide cone (methodical, covers a lot of ground)
 VISION_CONE_RANGE:      float = 220.0  # px
 VISION_CONE_HALF_ANGLE: float = 50.0   # degrees — half of total FOV (100° wide)
-VISION_CONE_COLOUR:     tuple[int, int, int] = (255, 240, 100)  # warm yellow
+VISION_CONE_COLOUR:     tuple[int, int, int] = (255, 240, 100)  # warm yellow (LURK)
 VISION_CONE_ALPHA:      int   = 65     # 0-255
 
-WAYPOINT_REACH_DIST:    float = 12.0   # px — close enough to "arrive" at waypoint
+WAYPOINT_REACH_DIST:    float = 12.0   # px — close enough to "arrive" at a waypoint
 
 # Detection
 PARTIAL_COVER_RANGE_MULT: float = 0.4   # vision range × this in partial cover (60% reduction)
 DEALER_CATCH_DIST:        float = 40.0  # px — dealer catches tractor when this close during CHASE
 
-# Dealer AI speeds and state timers
-DEALER1_SPEED_CHASE:    float = 150.0   # px/s — roughly 2× patrol speed
-DEALER_SUSPICIOUS_TIME: float = 2.0     # s in SUSPICIOUS before giving up
-DEALER_ALERT_TIME:      float = 1.5     # s of continuous sight before CHASE
-DEALER_CHASE_TIME:      float = 3.0     # s of active CHASE before SEARCHING
-DEALER_SEARCH_TIME:     float = 3.5     # s of SEARCHING before resuming PATROL
+# Hubert AI state timers
+HUBERT_CURIOUS_TIME:  float = 3.0   # s in CURIOUS moving toward noise source before giving up
+DEALER_ALERT_TIME:    float = 1.5   # s of continuous sight before CHASE
+DEALER_CHASE_TIME:    float = 3.0   # s of active CHASE before SEARCHING
+DEALER_SEARCH_TIME:   float = 3.5   # s of SEARCHING before returning to LURK
 
 # Round escalation — applied per completed round (capped at ESCALATION_MAX_ROUNDS)
-ESCALATION_SPEED_PER_ROUND:  float = 15.0   # px/s added to both patrol and chase speeds
-ESCALATION_VISION_PER_ROUND: float = 25.0   # px added to vision cone range
+# Gentle slope: a confident 5-year-old wins round 1 comfortably; rounds 3–5 get challenging.
+ESCALATION_SPEED_PER_ROUND:  float = 10.0   # px/s added to lurk and chase speeds
+ESCALATION_VISION_PER_ROUND: float = 18.0   # px added to vision cone range
 ESCALATION_MAX_ROUNDS:       int   = 5       # escalation stops growing after this round
 
-# Dealer cone colours per alert level (PATROL uses the existing VISION_CONE_COLOUR)
-DEALER_CONE_SUSPICIOUS: tuple[int, int, int] = (255, 160,  40)  # orange
-DEALER_CONE_ALERT:      tuple[int, int, int] = (255,  50,  50)  # red
+# Cone colours per alert level (LURK uses VISION_CONE_COLOUR)
+HUBERT_CONE_CURIOUS:    tuple[int, int, int] = (255, 160,  40)  # orange — heard something
+DEALER_CONE_ALERT:      tuple[int, int, int] = (255,  50,  50)  # red — spotted tractor
 
-# Dealer 1 patrol circuit — left side of map, below stone wall
-DEALER1_PATROL_WAYPOINTS: list[tuple[int, int]] = [
-    (120, 680),  # entry road, bottom-left
-    ( 80, 500),  # up the left edge
-    ( 80, 440),  # just below wall
-    (380, 440),  # along wall toward left gap
-    (380, 600),  # back down right side of patrol area
+# ---------------------------------------------------------------------------
+# Hieronymus (Dealer 2 — shorter, faster, mismatched socks, noise-obsessed)
+# Joins in Round 2. Narrow vision cone but reacts to any noise within sniff distance.
+# ---------------------------------------------------------------------------
+HIERONYMUS_WIDTH:          int   = 18
+HIERONYMUS_HEIGHT:         int   = 36     # shorter than Hubert
+HIERONYMUS_HEAD_RADIUS:    int   =  9
+HIERONYMUS_HEAD_OFFSET:    int   =  8
+HIERONYMUS_SPEED_LURK:     float = 105.0  # faster, more erratic drift
+HIERONYMUS_SPEED_CHASE:    float = 195.0  # much faster chase — very scary
+HIERONYMUS_BODY_COLOUR:    tuple[int, int, int] = ( 70,  50,  90)  # dark purple-grey coat
+HIERONYMUS_HEAD_COLOUR:    tuple[int, int, int] = (200, 160, 120)  # warm skin tone
+HIERONYMUS_SOCK_GREEN:     tuple[int, int, int] = ( 55, 180,  75)  # green sock (left)
+HIERONYMUS_SOCK_RED:       tuple[int, int, int] = (205,  50,  50)  # red sock (right)
+
+# Hieronymus has a narrower cone but an acute sense of noise
+HIERONYMUS_VISION_RANGE:      float = 170.0  # shorter range than Hubert
+HIERONYMUS_VISION_HALF_ANGLE: float = 32.0   # narrow cone — he's looking where he's going
+HIERONYMUS_SNIFF_DIST:        float = 200.0  # snaps to CURIOUS on amber/red within this
+HIERONYMUS_CURIOUS_TIME:      float = 2.5    # s in CURIOUS before giving up
+
+HIERONYMUS_SPRITE_W: int = 80
+HIERONYMUS_SPRITE_H: int = 95
+
+# Hieronymus lurk waypoints — right-side focus with erratic corner-checking.
+# He doubles back and checks tight spots, making him feel unpredictable.
+HIERONYMUS_LURK_WAYPOINTS: list[tuple[int, int]] = [
+    (1160, 650),   # entry road, bottom-right
+    (1100, 490),   # right edge, mid-map
+    (940, 440),    # right side, below wall
+    (1060, 310),   # above wall, near barn
+    (780, 200),    # mid-top, right of apple tree
+    (640, 330),    # near scarecrow — he checks this spot
+    (440, 450),    # below wall, centre-left
+    (350, 560),    # bottom-left, coop area
+    (650, 570),    # bottom-centre, near shed
+    (1080, 555),   # pig pen area — doubles back
+]
+
+# ---------------------------------------------------------------------------
+# Hubert lurk waypoints — spread across the whole farm so he meanders widely.
+# Each time he reaches one he picks the next at random (never the same spot twice).
+HUBERT_LURK_WAYPOINTS: list[tuple[int, int]] = [
+    (120, 650),   # bottom-left, near entry road
+    ( 90, 480),   # left edge, mid-map
+    (200, 420),   # just below stone wall, left of gap
+    (170, 290),   # above wall, near oak tree
+    (490, 200),   # mid-top, apple-tree area
+    (630, 320),   # mid-map, scarecrow area
+    (900, 420),   # right side, below wall
+    (1080, 590),  # bottom-right, near pig pen
+    (640, 570),   # bottom-centre, near old shed
+    (380, 530),   # bottom-left, near chicken coop
 ]
 
 # ---------------------------------------------------------------------------
 # Objectives and TimingBar
 # ---------------------------------------------------------------------------
-OBJ_PIGS_HOLD_TIME:       float = 3.0   # seconds to fill the pig-pen bar
-OBJ_COWS_OSCILLATE_SPEED: float = 0.8   # bar oscillation cycles per second
-OBJ_COWS_SUCCESS_MIN:     float = 0.75  # bar progress must be >= this for a successful A press
+OBJ_PIGS_HOLD_TIME:       float = 2.5   # seconds to fill pig-pen bar (faster = more tense)
+OBJ_COWS_OSCILLATE_SPEED: float = 1.0   # bar oscillation cycles per second (faster)
+OBJ_COWS_SUCCESS_MIN:     float = 0.80  # tighter success window — requires precision
 OBJ_SCARECROW_HOLD_TIME:  float = 2.0   # seconds to hold A for the scarecrow whisper
 OBJ_INTEL_DURATION:       float = 10.0  # seconds the scarecrow intel overlay stays active
 

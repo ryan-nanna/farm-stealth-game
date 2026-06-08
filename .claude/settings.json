@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit(game/**/*.py)",
+      "Edit(main.py)",
+      "Edit(game/settings.py)",
+      "Write(game/**/*.py)",
+      "Write(main.py)",
+      "Write(game/settings.py)",
+      "Bash(py -3.12 *)",
+      "PowerShell(py -3.12 *)",
+      "PowerShell(cd * ; py -3.12 *)"
+    ]
+  }
+}
