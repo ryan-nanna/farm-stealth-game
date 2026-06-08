@@ -188,21 +188,28 @@ BOTTOM EDGE: Farm entrance — dealers enter here each round
 | Farmhand     | Objective NPC| Pig pen. Warm and cheerful. Objective 1.           |
 | Farmer       | Objective NPC| Cow pasture. Objective 2.                          |
 | Gramps       | Safe zone    | Red barn. Win condition. Rings bell.               |
-| Dealer 1     | Villain      | Tall, lanky. Wide vision cone. Slow patrol.        |
-| Dealer 2     | Villain      | Short, round. Fast, erratic. Checks corners.       |
+| Hubert       | Villain      | Tall, lanky, beard. Wide vision cone. Slow lurk. Methodical. |
+| Hieronymus   | Villain      | One green sock, one red sock. Fast, erratic. Very noise-sensitive. |
+| Scrap Truck  | Villain (opt)| Battered truck circling perimeter. No vision cone — presence creates pressure. Hard mode only. |
 
 ---
 
 ## Enemy AI States
 
+Replaces the old fixed-patrol model (issue #12). Hubert and Hieronymus are trespassers —
+they should feel like they're snooping, not guarding.
+
 ```
-PATROL      → follows waypoint path at base speed
-SUSPICIOUS  → heard a noise, turns toward source, slows
-ALERT       → spotted tractor, vision cone locked on for 1.5s
+LURK        → slow semi-random drift around farm, variable waypoints
+CURIOUS     → heard noise, moves toward general area (not locked on tractor)
+SEARCHING   → actively checks hiding spots and corners
+ALERT       → vision cone locked on tractor for 1.5s
 CHASE       → 2-second escape window, rushing toward tractor
-SEARCHING   → lost tractor, checks last known position
-LEAVING     → round won, walking back to entrance
+LEAVING     → round won, exits farm bottom edge
 ```
+
+**Hubert-specific:** Wide vision cone, slow LURK speed, covers lots of ground methodically.  
+**Hieronymus-specific:** Narrow vision cone, fast erratic movement, snaps to CURIOUS on any noise within ~200px.
 
 ---
 
@@ -211,32 +218,50 @@ LEAVING     → round won, walking back to entrance
 Tractor engine generates noise proportional to speed.
 Visualised as a pulsing circle around the tractor:
 
-| State              | Ring colour | Dealer response               |
-|--------------------|-------------|-------------------------------|
-| Hidden + still     | None        | Ignored                       |
-| Still, not hidden  | Green pulse | No response                   |
-| Moving slowly      | Amber pulse | Dealers in range turn toward  |
-| Moving fast        | Red pulse   | Dealers investigate immediately|
-| Pig pen (objective)| Orange spike| Brief noise burst on completion|
+| State              | Ring colour | Dealer response                              |
+|--------------------|-------------|----------------------------------------------|
+| Hidden + still     | None        | Ignored                                      |
+| Still, not hidden  | Green pulse | No response                                  |
+| Moving slowly      | Amber pulse | Dealers in range snap to CURIOUS             |
+| Moving fast        | Red pulse   | Dealers investigate immediately (CURIOUS)    |
+| Pig pen (objective)| Orange spike| Real tense moment — real noise burst         |
+| Full speed past dealer within ~200px | Red | Near-certain detection      |
 
 B button (or Left Shift): cuts engine to zero noise instantly.
+Silent mode must feel genuinely necessary — close passes and objective completions
+require it. Dealers within noise radius snap to CURIOUS state immediately (issue #13).
 
 ---
 
-## MVP Scope (No Sound)
+## Build History & Phase 2 Scope
 
-Build sessions in this order:
+### Phase 1 — MVP ✅ Complete (Sessions 1–8)
 
-- **Session 1:** Tractor moves on screen. Arrow keys + controller input. Commit.
-- **Session 2:** Farm map renders. Hiding spots as coloured rects. Stone wall collision.
-- **Session 3:** Cover system. Tractor sprite changes when inside cover zone.
-- **Session 4:** One dealer. Patrol path. Vision cone drawn on screen.
-- **Session 5:** Detection logic. Noise radius. State machine. Caught screen.
-- **Session 6:** All 3 objectives. TimingBar mechanic. ObjectiveManager.
-- **Session 7:** Gramps + win condition. Round escalation. Full game loop.
-- **Session 8:** Scarecrow intel mechanic. HUD polish. README + GitHub cleanup.
+- ✅ Session 1: Tractor moves on screen. Arrow keys + controller input.
+- ✅ Session 2: Farm map renders. Hiding spots as coloured rects. Stone wall collision.
+- ✅ Session 3: Cover system. Tractor sprite changes when inside cover zone.
+- ✅ Session 4: One dealer. Patrol path. Vision cone drawn on screen.
+- ✅ Session 5: Detection logic. Noise radius. State machine. Caught screen.
+- ✅ Session 6: All 3 objectives. TimingBar mechanic. ObjectiveManager.
+- ✅ Session 7: Gramps + win condition. Round escalation. Full game loop.
+- ✅ Session 8: Scarecrow intel mechanic. HUD polish. README + GitHub cleanup.
 
-Sound integration is a separate phase after MVP gameplay is solid.
+### Phase 2 — Art, Enemy Overhaul, Polish (Issues #10–25)
+
+Build in this order:
+
+- **Issue #12:** Replace fixed patrol with lurk/hunt state machine (Hubert + Hieronymus) — *do first*
+- **Issue #10:** Replace generic dealer with Hubert — beard, lurk behaviour
+- **Issue #11:** Add Hieronymus — mismatched socks, noise-sensitive
+- **Issue #13:** Tune noise system — silent mode must matter
+- **Issue #22:** Round escalation tuning for 5-year-old difficulty
+- **Issues #14–17:** Art pass — sprites for tractor, dealers, farm elements, headlight eyes
+- **Issues #18–20:** Objective polish — animations, achievement moments, risk tuning
+- **Issue #21:** Title screen
+- **Issue #23:** Scrap Truck (hard mode, optional — only if game feels too easy)
+- **Issue #24:** Sound design pass — very last
+
+Sound and sprite integration are separate phases after gameplay is solid.
 
 ---
 
@@ -254,9 +279,21 @@ Sound integration is a separate phase after MVP gameplay is solid.
 
 ## What NOT to Build Yet
 
-- Sound (stubbed only — MusicSystem class exists but does nothing)
-- Actual sprite art (shapes only for MVP)
+- Sound (stubbed only — MusicSystem class exists but does nothing) — Issue #24, last
 - Save system
 - Multiple levels / maps
-- Menu system beyond a basic title screen
+- Dealer 4
+- Any backwards-compat shims for old generic Dealer 1/2 naming — just rename
+
+## Now In Scope (Phase 2)
+
+- Named dealers: Hubert and Hieronymus (replace generic Dealer 1/2)
+- Lurk/hunt AI state machine (replace fixed patrol waypoints)
+- Noise system with real teeth — silent mode genuinely necessary
+- Sprite art via PNG assets in `assets/sprites/` replacing shape drawing
+- Headlight eye expressions (animated per game state)
+- Objective animations and mini achievement moments
+- Title screen
+- Round escalation tuning for a confident 5-year-old
+- Scrap Truck (optional, hard mode only)
 
