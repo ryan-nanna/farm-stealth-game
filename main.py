@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import math
 import sys
 from enum import Enum, auto
 
@@ -25,6 +26,7 @@ from game.settings import (
 )
 from game.entities.dealer import Hubert
 from game.entities.hieronymus import Hieronymus
+from game.entities.scrap_truck import ScrapTruck
 from game.entities.gramps import Gramps
 from game.entities.tractor import EyeState, Tractor
 from game.level import Level
@@ -88,7 +90,6 @@ def _desired_eye_state(
         and hieronymus.state in {HieronymusState.ALERT, HieronymusState.CHASE}
     )
     # Also trigger WIDE when a dealer is in CURIOUS and close
-    import math
     curious_states = {HubertState.CURIOUS, HubertState.SEARCHING}
     hubert_curious = hubert.state in curious_states
     hiero_curious  = (
@@ -133,18 +134,19 @@ def main() -> None:
 
     round_num: int = 1
 
-    def _new_round() -> tuple[Hubert, Hieronymus | None, Tractor, ObjectiveManager]:
+    def _new_round() -> tuple[Hubert, Hieronymus | None, ScrapTruck | None, Tractor, ObjectiveManager]:
         hubert      = _make_hubert(round_num)
         hieronymus  = _make_hieronymus(round_num) if round_num >= 2 else None
+        truck       = ScrapTruck() if round_num >= 3 else None   # hard mode from round 3
         tractor     = Tractor()
         obj_manager = ObjectiveManager(
             level.pig_pen_rect,
             level.cow_pasture_rect,
             level.scarecrow_rect,
         )
-        return hubert, hieronymus, tractor, obj_manager
+        return hubert, hieronymus, truck, tractor, obj_manager
 
-    hubert, hieronymus, tractor, obj_manager = _new_round()
+    hubert, hieronymus, truck, tractor, obj_manager = _new_round()
     game_state = GameState.TITLE
 
     font = pygame.font.SysFont("Arial", 18)
@@ -190,13 +192,18 @@ def main() -> None:
             tractor.update(inp, dt, level.wall_rects, level.full_cover_rects, level.partial_cover_rects)
             obj_manager.update(tractor.rect, inp.is_held(Action.A), inp.pressed(Action.A), dt)
 
+            if truck is not None:
+                truck.update(dt, tractor.rect)
+
             # Eye state
             tractor.set_eye_state(
                 _desired_eye_state(tractor, hubert, hieronymus, obj_manager, game_state)
             )
 
-            caught = hubert.caught_tractor or (
-                hieronymus is not None and hieronymus.caught_tractor
+            caught = (
+                hubert.caught_tractor
+                or (hieronymus is not None and hieronymus.caught_tractor)
+                or (truck is not None and truck.caught_tractor)
             )
             if caught:
                 tractor.set_eye_state(EyeState.SHOCKED)
@@ -205,12 +212,14 @@ def main() -> None:
                 hubert.leave()
                 if hieronymus is not None:
                     hieronymus.leave()
+                if truck is not None:
+                    truck.leave()
                 game_state = GameState.WIN
 
         elif game_state == GameState.CAUGHT:
             tractor.set_eye_state(EyeState.SHOCKED)
             if inp.pressed(Action.A) or inp.pressed(Action.START):
-                hubert, hieronymus, tractor, obj_manager = _new_round()
+                hubert, hieronymus, truck, tractor, obj_manager = _new_round()
                 game_state = GameState.PLAYING
 
         elif game_state == GameState.WIN:
@@ -225,7 +234,7 @@ def main() -> None:
                 )
             if inp.pressed(Action.A) or inp.pressed(Action.START):
                 round_num += 1
-                hubert, hieronymus, tractor, obj_manager = _new_round()
+                hubert, hieronymus, truck, tractor, obj_manager = _new_round()
                 game_state = GameState.PLAYING
 
         # -------------------------------------------------------------------
@@ -244,6 +253,8 @@ def main() -> None:
             hubert.draw(screen)
             if hieronymus is not None:
                 hieronymus.draw(screen)
+            if truck is not None:
+                truck.draw(screen)
             tractor.draw(screen)
             level.draw_canopies(screen)
 
@@ -262,7 +273,7 @@ def main() -> None:
             elif game_state == GameState.CAUGHT:
                 caught_screen.draw(screen)
 
-            _draw_debug_hud(screen, font, input_manager, tractor, hubert, hieronymus, obj_manager, round_num, clock)
+            _draw_debug_hud(screen, font, input_manager, tractor, hubert, hieronymus, obj_manager, round_num, clock, truck)
 
         pygame.display.flip()
 
@@ -280,10 +291,12 @@ def _draw_debug_hud(
     obj_manager:   ObjectiveManager,
     round_num:     int,
     clock:         pygame.time.Clock,
+    truck:         ScrapTruck | None = None,
 ) -> None:
     cover_label = "HIDDEN" if tractor.is_hidden else "partial" if tractor.in_partial_cover else "exposed"
     completed   = len(obj_manager.completed)
-    hiero_state = hieronymus.state.name if hieronymus is not None else "not active"
+    hiero_state = hieronymus.state.name if hieronymus is not None else "—"
+    truck_state = "active" if truck is not None else "—"
 
     lines = [
         f"FPS: {clock.get_fps():.0f}  Round: {round_num}",
@@ -291,7 +304,7 @@ def _draw_debug_hud(
         f"Cover: {cover_label}  Noise r: {int(tractor.noise_radius)}",
         f"Silent: {'ON' if tractor.silent_mode else 'off'}  Eyes: {tractor.eye_state.name}",
         f"Hubert: {hubert.state.name}",
-        f"Hieronymus: {hiero_state}",
+        f"Hieronymus: {hiero_state}   Truck: {truck_state}",
         f"Objectives: {completed}/3  Intel: {'ON' if obj_manager.intel_active else 'off'}",
         f"Burst noise: {int(obj_manager.burst_noise_radius)}",
         f"Controller: {input_manager._joystick.get_name() if input_manager._joystick else 'keyboard only'}",

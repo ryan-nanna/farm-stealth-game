@@ -1,10 +1,10 @@
-# Farm Stealth Game
+# Farm Stealth
 
 A top-down 2D stealth/adventure game built in Python + Pygame.
 
-Guide a small grey tractor through a farm to complete three secret missions while hiding from bumbling scrap dealers. Return to Gramps at the barn to win the round!
+Guide a small grey tractor through a farm to complete three secret chores while hiding from two bumbling scrap dealers. Return to Gramps at the barn to win the round!
 
-Designed as a gift for a 5-year-old who loves tractors, and built as a portfolio project demonstrating Python game development with clean architecture and incremental delivery.
+Made as a gift for a 5-year-old who loves tractors — and built as a portfolio project demonstrating incremental delivery, clean architecture, and Python game development.
 
 ---
 
@@ -15,7 +15,23 @@ pip install pygame
 py -3.12 main.py
 ```
 
-Requires Python 3.12+ and Pygame 2.6+.
+**Requires:** Python 3.12+, Pygame 2.6+
+
+---
+
+## How to Play
+
+Complete **three farm missions** in any order, then drive back to the red barn and find Gramps.
+
+| Mission | Location | How |
+|---|---|---|
+| 🐷 Feed the pigs | Pig pen — bottom-right | Drive in, **hold A** until the bar fills |
+| 🐄 Help with the cows | Cow pasture — top-left | Drive in, **press A** when bar hits the yellow zone |
+| 🤖 Find the scarecrow | Mid-map, near stone wall | Drive up, **hold A** for 2 seconds to whisper — earns 10 s of intel |
+
+Two scrap dealers are snooping around the farm. If a dealer's vision cone stays on you long enough, they'll chase you down. Stay in cover, use silent mode when passing close, and complete the scarecrow mission early to track their positions on the mini-map.
+
+After each round the dealers get faster and see further — how many rounds can you survive?
 
 ---
 
@@ -23,62 +39,68 @@ Requires Python 3.12+ and Pygame 2.6+.
 
 ### USB NES-Style Controller (primary)
 
-| Input    | Action                                  |
-|----------|-----------------------------------------|
-| D-Pad    | Move tractor                            |
-| A        | Interact / hold to complete objective   |
-| B        | Silent mode — slower and quieter        |
-| Start    | Pause                                   |
+| Input | Action |
+|---|---|
+| D-Pad | Move |
+| **A** | Interact / hold to complete objective |
+| **B** | Silent mode — cuts engine noise, moves slower |
+| Start | Pause |
+| Select | Toggle scarecrow intel overlay |
 
-### Keyboard (always active alongside controller)
+### Keyboard (works simultaneously with controller)
 
-| Key         | Action          |
-|-------------|-----------------|
-| Arrow keys  | Move            |
-| Space       | Interact (A)    |
-| Left Shift  | Silent mode (B) |
-| Escape      | Quit            |
+| Key | Action |
+|---|---|
+| Arrow keys | Move |
+| **Space** | Interact (A) |
+| **Left Shift** | Silent mode (B) |
+| **Tab** | Intel overlay (Select) |
+| Escape | Quit |
 
 ---
 
-## How to Play
+## The Dealers
 
-Each round the tractor must complete three farm missions, then return to Gramps at the red barn:
+### Hubert
+Long dark hair, bucket hat, denim vest. Slow and methodical — wanders the whole farm on a wide semi-random circuit. Wide vision cone. Heard noise draws him toward the general area before he locks on.
 
-| Mission            | Location                 | How                                                    |
-|--------------------|--------------------------|--------------------------------------------------------|
-| Feed the pigs      | Pig pen (bottom-right)   | Drive in, hold A until the bar fills                   |
-| Help with the cows | Cow pasture (top-left)   | Drive in, press A when the bar hits the yellow zone    |
-| Find the scarecrow | Mid-map near stone wall  | Drive up, hold A for 2 seconds — earns 10 s of intel   |
+### Hieronymus
+One green sock, one red sock. Fast and erratic — darts between corners, doubles back unexpectedly. Narrow vision cone, but very noise-sensitive: he'll react to any movement sound within 200 px even if you're outside his normal detection range. **Silent mode matters most near Hieronymus.**
 
-Two scrap dealers patrol the farm. If a dealer's vision cone covers the tractor long enough, it's game over. Stay in cover, use silent mode near dealers, and use the scarecrow intel to track their positions.
-
-After each win the dealers get faster and their vision reaches further — how many rounds can you complete?
+### Scrap Truck *(round 3+)*
+A battered truck that drives a slow clockwise loop around the farm perimeter. No vision cone — just inevitable presence blocking the outer edge.
 
 ---
 
 ## Mechanics
 
-### Cover System
+### Cover
 
-| Zone                               | Effect                                    |
-|------------------------------------|-------------------------------------------|
-| Trees, chicken coop, shed, pig pen | Full cover — invisible to vision cones    |
-| Stone wall, well                   | Partial cover — vision range reduced 60%  |
+| Zone | Effect |
+|---|---|
+| Trees, chicken coop, old shed, pig pen | **Full cover** — invisible to vision cones. Noise still active. |
+| Stone wall, well/trough | **Partial cover** — vision range cut 60%. Detectable up close. |
 
-### Noise Rings
+### Noise
 
-| Colour | State               | Dealer response                    |
-|--------|---------------------|------------------------------------|
-| Green  | Standing still      | No reaction                        |
-| Amber  | Moving (silent B)   | Dealers in range turn toward you   |
-| Red    | Moving normally     | Dealers investigate immediately    |
+| Ring colour | State | Dealer response |
+|---|---|---|
+| None | Hidden + still | Ignored |
+| 🟢 Green | Standing still, exposed | No reaction |
+| 🟡 Amber | Moving in **silent mode** | Dealers in range snap to curious |
+| 🔴 Red | Moving at normal speed | Dealers investigate immediately |
+| 🟠 Orange burst | Objective just completed | Real tense moment — be ready to hide |
 
-Hold B / Left Shift to cut the engine and move silently (amber ring, slower speed).
+### Enemy AI States
 
-### Intel Overlay
-
-Completing the scarecrow mission reveals a mini-map for 10 seconds showing dealer positions in real time.
+```
+LURK      → slow drift across farm, semi-random waypoints
+CURIOUS   → heard noise, moving toward general area (not locked on)
+SEARCHING → checking last known position
+ALERT     → visual lock — cone held on tractor for 1.5 s
+CHASE     → rushing toward tractor (2 s window to escape)
+LEAVING   → round won, walking off the bottom edge
+```
 
 ---
 
@@ -86,41 +108,59 @@ Completing the scarecrow mission reveals a mini-map for 10 seconds showing deale
 
 ```
 farm-stealth-game/
-├── main.py                    # Entry point, game loop, state machine
+├── main.py                        # Game loop, state machine, round management
 ├── game/
-│   ├── settings.py            # All constants — single source of truth
-│   ├── level.py               # Static farm map, cover zones, objective rects
+│   ├── settings.py                # All constants — single source of truth
+│   ├── level.py                   # Static farm map, cover zones, objective rects
 │   ├── entities/
-│   │   ├── tractor.py         # Player: movement, cover, noise system
-│   │   ├── dealer.py          # Enemy: patrol AI, vision cone, state machine
-│   │   └── gramps.py          # Win-condition NPC in the barn
+│   │   ├── tractor.py             # Player: movement, cover, noise, eye expressions
+│   │   ├── dealer.py              # Hubert: lurk/hunt AI, photo sprite, vision cone
+│   │   ├── hieronymus.py          # Hieronymus: noise-sensitive second dealer
+│   │   ├── scrap_truck.py         # Scrap truck: perimeter driver, hard mode
+│   │   └── gramps.py              # Win-condition NPC at the barn
 │   ├── systems/
-│   │   ├── input.py           # Unified keyboard + controller input
-│   │   ├── detection.py       # Vision cone + noise detection (pure functions)
-│   │   ├── collision.py       # Cover overlap detection
-│   │   ├── objectives.py      # ObjectiveManager, TimingBar
-│   │   └── state_machine.py   # Generic StateMachine[S] used by dealer AI
+│   │   ├── input.py               # Unified keyboard + USB controller input
+│   │   ├── detection.py           # Vision cone + noise detection (pure functions)
+│   │   ├── collision.py           # Cover overlap detection
+│   │   ├── objectives.py          # ObjectiveManager, TimingBar, ParticleSystem
+│   │   └── state_machine.py       # Generic StateMachine[S] used by all AI
 │   └── ui/
-│       ├── hud.py             # Objective checklist, noise dot, intel mini-map
-│       └── screens.py         # Win and caught overlays
-└── assets/                    # Reserved for future sprite art and audio
+│       ├── hud.py                 # Checklist, noise dot, intel mini-map
+│       └── screens.py             # Title, win, and caught overlays
+└── assets/
+    └── sprites/                   # PNG sprites (transparent background, top-down)
 ```
 
 ---
 
 ## Tech Stack
 
-- **Python 3.12**
-- **Pygame 2.6**
-- All visuals drawn as code shapes — no external art assets required for MVP
-- Generic `StateMachine[S]` keeps enemy AI states clean and extensible
+- **Python 3.12** · **Pygame 2.6**
+- Generic `StateMachine[S]` keeps all enemy AI states clean and testable
 - Unified input system: keyboard and USB NES controller work simultaneously
+- Sprite system: `pygame.image.load()` with graceful shape fallback if PNG not present
+- All gameplay constants in `settings.py` — no magic numbers anywhere else
+
+---
+
+## Build Sessions
+
+| Session | What shipped |
+|---|---|
+| 1 | Tractor moves — keyboard + controller input |
+| 2 | Farm map renders — cover zones, stone wall collision |
+| 3 | Cover system — tractor hides in cover zones |
+| 4 | One dealer — patrol path, vision cone |
+| 5 | Detection — noise radius, state machine, caught screen |
+| 6 | All 3 objectives — TimingBar mechanic, ObjectiveManager |
+| 7 | Gramps + win condition — round escalation, full game loop |
+| 8 | Scarecrow intel — mini-map overlay, HUD polish |
+| 9 | Phase 2 — Hieronymus, noise overhaul, eye expressions, title screen, sparkle particles, scrap truck |
 
 ---
 
 ## Roadmap
 
-- [ ] Sprite art to replace placeholder shapes
-- [ ] Audio — engine hum, scarecrow whisper, Gramps bell
-- [ ] Second dealer with different patrol and behaviour
-- [ ] Title screen and pause menu
+- [ ] Sprite art for Hieronymus, tractor, farm elements (issues #14–16)
+- [ ] Sound design — engine hum, Gramps bell, caught sting (issue #24)
+- [ ] Scrap truck sprite (issue #15)

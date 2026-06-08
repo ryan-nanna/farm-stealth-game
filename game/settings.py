@@ -216,6 +216,30 @@ HIERONYMUS_LURK_WAYPOINTS: list[tuple[int, int]] = [
 ]
 
 # ---------------------------------------------------------------------------
+# Scrap Truck (Dealer 3 — hard mode, optional)
+# Drives a fixed clockwise road loop around the farm perimeter.
+# No vision cone or state machine — presence alone creates pressure.
+# Enabled from round 3 onwards (or never, if game feels balanced without it).
+# ---------------------------------------------------------------------------
+SCRAP_TRUCK_SPEED:       float = 95.0   # px/s — slow enough to feel inevitable
+SCRAP_TRUCK_WIDTH:       int   = 50
+SCRAP_TRUCK_HEIGHT:      int   = 32
+SCRAP_TRUCK_BODY_COLOUR: tuple[int, int, int] = ( 95,  75,  55)  # rusty brown
+SCRAP_TRUCK_CAB_COLOUR:  tuple[int, int, int] = ( 70,  55,  40)  # darker cab
+SCRAP_TRUCK_CATCH_DIST:  float = 48.0  # px — truck runs the tractor over if this close
+
+# Perimeter loop — clockwise, hugging the screen edges.
+# Offset inward by ~28px so the truck body is fully on-screen.
+_M = 28   # margin from edge
+SCRAP_TRUCK_WAYPOINTS: list[tuple[int, int]] = [
+    (SCREEN_WIDTH - _M, _M),               # top-right
+    (_M,                _M),               # top-left
+    (_M,                SCREEN_HEIGHT - _M),# bottom-left
+    (SCREEN_WIDTH - _M, SCREEN_HEIGHT - _M),# bottom-right
+]
+del _M
+
+# ---------------------------------------------------------------------------
 # Hubert lurk waypoints — spread across the whole farm so he meanders widely.
 # Each time he reaches one he picks the next at random (never the same spot twice).
 HUBERT_LURK_WAYPOINTS: list[tuple[int, int]] = [
