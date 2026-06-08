@@ -56,6 +56,17 @@ NOISE_RADIUS_FAST:  float = 210.0   # normal movement near a dealer = near-certa
 OBJ_BURST_RADIUS:   float = 280.0   # spike radius when an objective completes
 OBJ_BURST_DURATION: float = 1.5     # seconds the spike lasts
 
+# Sprite display size (larger than hitbox — sprite is a side-view photo)
+TRACTOR_SPRITE_W: int = 150
+TRACTOR_SPRITE_H: int = 107
+# Headlight hole positions as pixel offsets from the sprite's top-left corner.
+# Measured from the source image (1003x717) as fractions then scaled:
+#   upper HL: source centre (855,313) → fraction (0.853, 0.437)
+#   lower HL: source centre (855,352) → fraction (0.853, 0.491)
+TRACTOR_HL_UPPER:  tuple[int, int] = (128, 47)   # offset from sprite top-left
+TRACTOR_HL_LOWER:  tuple[int, int] = (128, 53)
+TRACTOR_HL_RADIUS: int = 5
+
 # Starting position — top-right area near barn
 TRACTOR_SPAWN_X: int = SCREEN_WIDTH  - 120
 TRACTOR_SPAWN_Y: int = 80
