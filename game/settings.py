@@ -56,16 +56,6 @@ NOISE_RADIUS_FAST:  float = 210.0   # normal movement near a dealer = near-certa
 OBJ_BURST_RADIUS:   float = 280.0   # spike radius when an objective completes
 OBJ_BURST_DURATION: float = 1.5     # seconds the spike lasts
 
-# Sprite display size (larger than hitbox — sprite is a side-view photo)
-TRACTOR_SPRITE_W: int = 150
-TRACTOR_SPRITE_H: int = 107
-# Headlight hole offsets from sprite top-left, confirmed via alpha-mask diagnostic.
-# Primary (larger) headlight circle sits at ~(110,52); secondary at ~(134,58).
-TRACTOR_HL_UPPER:  tuple[int, int] = (110, 52)   # primary headlight (larger circle)
-TRACTOR_HL_LOWER:  tuple[int, int] = (134, 58)   # secondary headlight (smaller circle)
-TRACTOR_HL_RADIUS: int = 6                        # primary radius
-TRACTOR_HL_RADIUS2: int = 4                       # secondary radius (slightly smaller)
-
 # How long the HAPPY eye expression lasts after an objective completes
 TRACTOR_EYE_HAPPY_DURATION: float = 0.8          # seconds
 
