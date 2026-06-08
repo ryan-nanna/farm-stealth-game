@@ -32,7 +32,9 @@ from game.settings import (
     TRACTOR_HEIGHT,
     TRACTOR_HL_LOWER,
     TRACTOR_HL_RADIUS,
+    TRACTOR_HL_RADIUS2,
     TRACTOR_HL_UPPER,
+    TRACTOR_EYE_HAPPY_DURATION,
     TRACTOR_SPEED_NORMAL,
     TRACTOR_SPEED_SILENT,
     TRACTOR_SPAWN_X,
@@ -84,6 +86,8 @@ def _load_sprite_remove_white(
 # Also removes the blank white headlight holes — those are filled with drawn pupils.
 _WHITE_THRESHOLD = 230
 
+# Headlight fill is white — the sprite has blank white holes intentionally left for eyes
+_HL_FILL = (255, 255, 255)
 # Dark pupil colour
 _PUPIL_COLOUR = (30, 20, 5)
 
@@ -122,6 +126,8 @@ class Tractor:
 
         self.eye_state: EyeState = EyeState.NORMAL
         self._eye_timer: float   = 0.0
+        # Keeps HAPPY visible for its full duration even when main.py ticks back to NORMAL
+        self._happy_timer: float = 0.0
 
         # Load sprite with proper alpha removal; fall back to shapes if file missing
         self._sprite: pygame.Surface | None = None
@@ -135,6 +141,9 @@ class Tractor:
     # ------------------------------------------------------------------
 
     def set_eye_state(self, state: EyeState) -> None:
+        if state == EyeState.HAPPY:
+            # Latch HAPPY for the full duration so it isn't overwritten next frame
+            self._happy_timer = TRACTOR_EYE_HAPPY_DURATION
         if state != self.eye_state:
             self.eye_state  = state
             self._eye_timer = 0.0
@@ -153,6 +162,11 @@ class Tractor:
     ) -> None:
         self.silent_mode = input_state.is_held(Action.B)
         self._eye_timer += dt
+
+        # Keep HAPPY visible for its full duration regardless of what main.py sends
+        if self._happy_timer > 0.0:
+            self._happy_timer -= dt
+            self.eye_state  = EyeState.HAPPY
 
         speed     = TRACTOR_SPEED_SILENT if self.silent_mode else TRACTOR_SPEED_NORMAL
         dx, dy    = input_state.move_vector
@@ -233,60 +247,64 @@ class Tractor:
         # Absolute screen positions of the two headlight holes
         hl_upper = (sprite_rect.x + TRACTOR_HL_UPPER[0], sprite_rect.y + TRACTOR_HL_UPPER[1])
         hl_lower = (sprite_rect.x + TRACTOR_HL_LOWER[0], sprite_rect.y + TRACTOR_HL_LOWER[1])
-        r = TRACTOR_HL_RADIUS
 
-        # Fill the transparent holes with a warm yellow glow
-        for pos in (hl_upper, hl_lower):
-            pygame.draw.circle(surface, TRACTOR_HEADLIGHT_COLOUR, pos, r)
+        # Fill the transparent holes with white — the sprite intentionally left them blank
+        pygame.draw.circle(surface, _HL_FILL, hl_upper, TRACTOR_HL_RADIUS)
+        pygame.draw.circle(surface, _HL_FILL, hl_lower, TRACTOR_HL_RADIUS2)
 
-        # Draw animated pupils on top
-        self._draw_pupils(surface, hl_upper, hl_lower, r)
+        # Draw animated pupils on top of the white fill
+        self._draw_pupils(surface, hl_upper, hl_lower)
 
     def _draw_pupils(
         self,
         surface: pygame.Surface,
         hl_upper: tuple[int, int],
         hl_lower: tuple[int, int],
-        r: int,
     ) -> None:
-        """Animate pupils inside both headlight circles based on eye state."""
-        t = self._eye_timer
+        """Animate pupils inside the two headlight circles based on eye state.
+        hl_upper uses TRACTOR_HL_RADIUS; hl_lower uses TRACTOR_HL_RADIUS2."""
+        t  = self._eye_timer
+        r1 = TRACTOR_HL_RADIUS   # primary headlight radius
+        r2 = TRACTOR_HL_RADIUS2  # secondary headlight radius
+
+        def pupil(pos: tuple[int, int], r: int, ox: int = 0, oy: int = 0, pr: int = -1) -> None:
+            pr = pr if pr >= 0 else max(1, r - 2)
+            pygame.draw.circle(surface, _PUPIL_COLOUR, (pos[0] + ox, pos[1] + oy), pr)
 
         if self.eye_state == EyeState.NORMAL:
-            for pos in (hl_upper, hl_lower):
-                pygame.draw.circle(surface, _PUPIL_COLOUR, pos, max(1, r - 2))
+            pupil(hl_upper, r1)
+            pupil(hl_lower, r2)
 
         elif self.eye_state == EyeState.NERVOUS:
-            # Pupils dart left/right on a quick sinusoidal cycle
-            dart = int(math.sin(t * 7.0) * (r - 1))
-            for pos in (hl_upper, hl_lower):
-                pygame.draw.circle(surface, _PUPIL_COLOUR, (pos[0] + dart, pos[1]), max(1, r - 2))
+            # Pupils dart side to side on a fast cycle
+            dart = int(math.sin(t * 7.0) * max(1, r1 - 2))
+            pupil(hl_upper, r1, ox=dart)
+            pupil(hl_lower, r2, ox=dart)
 
         elif self.eye_state == EyeState.WIDE:
-            # Pupils shrink to tiny pinpoints — fear
-            for pos in (hl_upper, hl_lower):
-                pygame.draw.circle(surface, _PUPIL_COLOUR, pos, max(1, r - 4))
+            # Pupils shrink to tiny pinpoints — wide-eyed fear
+            pupil(hl_upper, r1, pr=max(1, r1 - 4))
+            pupil(hl_lower, r2, pr=max(1, r2 - 3))
 
         elif self.eye_state == EyeState.FOCUSED:
-            # Pupils shift slightly toward the centre of the headlight pair
-            for pos in (hl_upper, hl_lower):
-                pygame.draw.circle(surface, _PUPIL_COLOUR, (pos[0] - 1, pos[1]), max(1, r - 2))
+            # Pupils shift slightly inward — determined concentration
+            pupil(hl_upper, r1, ox=-1)
+            pupil(hl_lower, r2, ox=-1)
 
         elif self.eye_state == EyeState.HAPPY:
-            # Scrunch: draw a crescent by overlaying a slightly-offset body-colour circle
-            for pos in (hl_upper, hl_lower):
-                pygame.draw.circle(surface, _PUPIL_COLOUR, pos, max(1, r - 2))
-                # Crescent mask — cover the top half of the pupil
-                pygame.draw.circle(surface, TRACTOR_HEADLIGHT_COLOUR,
-                                   (pos[0], pos[1] - (r - 2)), max(1, r - 2))
+            # Scrunch — crescent effect: draw pupil then mask top half with white
+            for pos, r in ((hl_upper, r1), (hl_lower, r2)):
+                pr = max(1, r - 2)
+                pygame.draw.circle(surface, _PUPIL_COLOUR, pos, pr)
+                # White semi-circle covers the top, leaving a smile-crescent
+                pygame.draw.circle(surface, _HL_FILL, (pos[0], pos[1] - pr + 1), pr)
 
         elif self.eye_state == EyeState.SHOCKED:
-            # Jittery panic — pupils jump around randomly
-            for pos in (hl_upper, hl_lower):
+            # Jittery panic — pupils jump randomly every frame
+            for pos, r in ((hl_upper, r1), (hl_lower, r2)):
                 jx = random.randint(-(r - 2), r - 2)
                 jy = random.randint(-(r - 2), r - 2)
-                pygame.draw.circle(surface, _PUPIL_COLOUR,
-                                   (pos[0] + jx, pos[1] + jy), max(1, r - 3))
+                pupil(pos, r, ox=jx, oy=jy, pr=max(1, r - 3))
 
     def _draw_shapes(self, surface: pygame.Surface) -> None:
         """Fallback: geometric shapes when sprite file is absent."""
@@ -303,12 +321,7 @@ class Tractor:
         pygame.draw.circle(surface, TRACTOR_HEADLIGHT_COLOUR, (hl_x, hl_y_top),    4)
         pygame.draw.circle(surface, TRACTOR_HEADLIGHT_COLOUR, (hl_x, hl_y_bottom), 4)
 
-        self._draw_pupils(
-            surface,
-            (hl_x, hl_y_top),
-            (hl_x, hl_y_bottom),
-            4,
-        )
+        self._draw_pupils(surface, (hl_x, hl_y_top), (hl_x, hl_y_bottom))
 
         for wx, wy in [
             (self.rect.left  + 8, self.rect.top    + 5),
