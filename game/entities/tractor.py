@@ -37,74 +37,90 @@ from game.systems.collision import check_cover
 from game.systems.input import Action, InputState
 
 # ---------------------------------------------------------------------------
-# Sprite geometry  — proportions tuned to a real Ferguson TE20 side profile.
-# Key ratio: rear wheel diameter ≈ 85 % of bonnet length (makes it look like
-# a tractor, not a car). Rear wheel dominates; bonnet is compact.
+# Sprite geometry  (Ferguson TE20 side profile, facing right)
+#
+# Key proportions from real TE20:
+#   rear wheel diameter / overall height  ≈ 55 %
+#   rear wheel diameter / bonnet length   ≈ 80 %
+#   front wheel diameter / rear           ≈ 40 %
+#   steering wheel radius                 ≈ half of bonnet height — very prominent
 # ---------------------------------------------------------------------------
-_SW, _SH = 168, 120   # sprite canvas size
+_SW, _SH = 264, 165   # sprite canvas — wide/tall enough for full wheel + headlights
 
-# Rear wheel — large and dominant (diameter = 66 px in 120 px tall canvas)
-_RCX, _RCY, _RR = 52, 82, 33   # centre-x, centre-y, tyre radius
-# Ground level: _RCY + _RR = 115
-_GROUND = _RCY + _RR            # 115
+# Ground line (both wheels rest here)
+_GROUND = 152
 
-# Front wheel — noticeably smaller
-_FCX, _FCY, _FR = 142, _GROUND - 14, 14   # cy = 101, ground = 115 ✓
+# Rear wheel — large and fully visible, no clipping
+_RCX, _RCY, _RR = 60, 108, 44   # centre, tyre radius  (bottom = 152 ✓, top = 64)
 
-# Bonnet (hood) — length 76 px, height 22 px; ratio to rear-wheel diam = 76/66 ≈ 1.15
-_BON_TOP   = _RCY - _RR + 4    # 53 — slightly below wheel top
-_BON_BOT   = _BON_TOP + 22     # 75
-_BON_LEFT  = _RCX + 16         # 68
-_BON_RIGHT = _BON_LEFT + 76    # 144
+# Front wheel — noticeably smaller (real ratio ~0.40)
+_FCX = 195
+_FR  = 18
+_FCY = _GROUND - _FR            # 134
 
-# Exhaust pipe — sits 40 % along the bonnet, rises high
-_EXH_X   = _BON_LEFT + 30      # 98
-_EXH_TOP = 14                  # top of pipe (tall, distinctive)
+# Bonnet / hood  (length ≈ 112 px, height ≈ 26 px)
+_BON_LEFT  = _RCX + 26          # 86  — starts where fender meets body
+_BON_RIGHT = _FCX + _FR - 4     # 209
+_BON_TOP   = _RCY - _RR + 14   # 78  — sits comfortably below wheel top
+_BON_BOT   = _BON_TOP + 26     # 104
 
-# Headlights — on the nose face, deliberately large for expression
-_HL_R1 = 8    # upper headlight radius
-_HL_R2 = 6    # lower headlight radius
+# Exhaust pipe — rises tall from mid-bonnet
+_EXH_X   = _BON_LEFT + 38      # 124
+_EXH_TOP = 18                  # very top of canvas
+
+# Steering wheel (the defining visual of an old tractor)
+_SW_CX = _BON_LEFT + 10        # 96  — set back on the bonnet
+_SW_CY = _BON_TOP - 22         # 56  — well above bonnet top
+_SW_R  = 24                    # large! visible from far away
+
+# Headlights — DOUBLED from previous version, on the nose face
+_HL_R1 = 16   # upper / primary headlight
+_HL_R2 = 12   # lower / secondary headlight
 
 def _hl_positions() -> tuple[tuple[int, int], tuple[int, int]]:
-    nose_x   = _BON_RIGHT + 5
-    nose_mid = (_BON_TOP + _BON_BOT) // 2
-    return (nose_x + _HL_R1 - 2, nose_mid - 8), \
-           (nose_x + _HL_R2 - 2, nose_mid + 7)
+    nose_x  = _BON_RIGHT + 6
+    mid_y   = (_BON_TOP + _BON_BOT) // 2
+    upper   = (nose_x + _HL_R1 - 3, mid_y - 12)
+    lower   = (nose_x + _HL_R2 - 2, mid_y + 11)
+    return upper, lower
 
 _HL_UPPER, _HL_LOWER = _hl_positions()
 
 # ---------------------------------------------------------------------------
-# Colour palette  (warm Ferguson grey + character accents)
+# Colour palette  (warm Ferguson grey)
 # ---------------------------------------------------------------------------
-_C_TYRE    = ( 40,  38,  34)   # near-black tyres
-_C_RIM     = (138, 135, 130)   # wheel rims
-_C_HUB     = (158, 155, 150)   # hub caps
-_C_SPOKE   = (115, 112, 108)   # spokes
-_C_BODY    = (172, 168, 160)   # main body warm grey
-_C_BONNET  = (186, 182, 174)   # bonnet (slightly lighter)
-_C_FENDER  = (162, 158, 152)   # mudguard/fender
-_C_DARK    = ( 98,  95,  90)   # shadows, outlines
-_C_EXHAUST = ( 68,  65,  60)   # exhaust pipe
-_C_SEAT    = ( 84,  50,  26)   # leather seat
-_C_HL_FILL = (255, 255, 255)   # headlight fill (white)
-_C_PUPIL   = ( 28,  20,   8)   # dark pupil
+_C_TYRE      = ( 42,  40,  36)   # near-black tyres
+_C_RIM       = (138, 135, 130)   # wheel rims
+_C_HUB       = (160, 157, 152)   # hub caps
+_C_SPOKE     = (112, 109, 105)   # spokes
+_C_BODY      = (170, 166, 158)   # main chassis warm grey
+_C_TRANS     = (155, 151, 144)   # transmission housing (slightly darker)
+_C_BONNET    = (188, 184, 176)   # bonnet (lighter — catches light on top)
+_C_FENDER    = (158, 155, 148)   # mudguard/fender
+_C_DARK      = ( 92,  89,  84)   # shadows, outlines, dark metal
+_C_EXHAUST   = ( 65,  62,  57)   # exhaust pipe (dark metal)
+_C_SEAT      = ( 82,  48,  22)   # worn leather seat
+_C_STEER_RIM = (125, 122, 117)   # steering wheel rim (dark bakelite)
+_C_HL_FILL   = (255, 255, 255)   # headlight fill — white holes for pupils
+_C_PUPIL     = ( 28,  20,   8)   # dark pupil colour
 
 
 def _arc_polygon(
     cx: int, cy: int,
     r_outer: float, r_inner: float,
     deg_start: int, deg_end: int,
-    steps: int = 20,
+    steps: int = 24,
 ) -> list[tuple[int, int]]:
     """
-    Build a filled-arc polygon (a ring segment).
-    Angles in degrees: 0=right, 90=UP on screen (using cy - r*sin convention).
+    Filled arc polygon.  Angles: 0=right, 90=UP on screen (cy − r·sin).
     """
     pts: list[tuple[int, int]] = []
-    for d in range(deg_start, deg_end + 1, max(1, (deg_end - deg_start) // steps)):
+    span = deg_end - deg_start
+    step = max(1, span // steps)
+    for d in range(deg_start, deg_end + 1, step):
         a = math.radians(d)
         pts.append((int(cx + r_outer * math.cos(a)), int(cy - r_outer * math.sin(a))))
-    for d in range(deg_end, deg_start - 1, -max(1, (deg_end - deg_start) // steps)):
+    for d in range(deg_end, deg_start - 1, -step):
         a = math.radians(d)
         pts.append((int(cx + r_inner * math.cos(a)), int(cy - r_inner * math.sin(a))))
     return pts
@@ -112,132 +128,196 @@ def _arc_polygon(
 
 def _build_sprite() -> pygame.Surface:
     """
-    Draw a Ferguson TE20 side profile and return a cached SRCALPHA surface.
-    Drawing order: back to front.
-    Headlight circles are left WHITE — pupils are drawn on top each frame.
+    Draw the TE20 side profile onto a cached SRCALPHA surface.
+    Rear wheel is fully visible top-to-bottom.
+    Steering wheel is prominent above the bonnet.
+    Headlights are large — pupils drawn on top each frame.
     """
     surf = pygame.Surface((_SW, _SH), pygame.SRCALPHA)
 
-    # ------------------------------------------------------------------
-    # 1. REAR TYRE
-    # ------------------------------------------------------------------
+    # ---------------------------------------------------------------
+    # 1.  REAR TYRE  (large, fully visible)
+    # ---------------------------------------------------------------
     pygame.draw.circle(surf, _C_TYRE, (_RCX, _RCY), _RR)
-    # Subtle tyre sidewall ring
-    pygame.draw.circle(surf, (54, 51, 47), (_RCX, _RCY), _RR, 4)
+    # Tyre sidewall bead ring
+    pygame.draw.circle(surf, (56, 53, 48), (_RCX, _RCY), _RR, 5)
+    # Inner shoulder line
+    pygame.draw.circle(surf, (50, 48, 44), (_RCX, _RCY), _RR - 5, 2)
 
-    # ------------------------------------------------------------------
-    # 2. REAR MUDGUARD / FENDER
-    # Thick arc over the upper portion of the rear wheel, then a flat tab
-    # connecting forward to the bonnet area.
-    # ------------------------------------------------------------------
-    fender_out = _RR + 11
-    fender_pts = _arc_polygon(_RCX, _RCY, fender_out, _RR + 1, -8, 198, 32)
-    if len(fender_pts) >= 3:
-        pygame.draw.polygon(surf, _C_FENDER, fender_pts)
-    # Light highlight on top edge of fender — makes it read against the body
-    hl_pts = _arc_polygon(_RCX, _RCY, fender_out, fender_out - 2, 15, 175, 20)
-    if len(hl_pts) >= 3:
-        pygame.draw.polygon(surf, (178, 175, 168), hl_pts)
-    # Flat fender tab connecting toward bonnet
+    # ---------------------------------------------------------------
+    # 2.  REAR MUDGUARD / FENDER
+    #     Wide arc over the upper wheel, connecting to the body.
+    #     Drawn before the rim so it sits behind the wheel face.
+    # ---------------------------------------------------------------
+    fender_out = _RR + 12
+    fpts = _arc_polygon(_RCX, _RCY, fender_out, _RR + 1, -10, 200, 32)
+    if len(fpts) >= 3:
+        pygame.draw.polygon(surf, _C_FENDER, fpts)
+    # Top-edge highlight
+    hpts = _arc_polygon(_RCX, _RCY, fender_out - 1, fender_out - 3, 10, 175, 20)
+    if len(hpts) >= 3:
+        pygame.draw.polygon(surf, (175, 172, 165), hpts)
+    # Flat tab forward — bridges fender to bonnet
     pygame.draw.rect(surf, _C_FENDER,
-                     pygame.Rect(_RCX + 4, _RCY - _RR - 10, 30, 14),
-                     border_radius=3)
+                     pygame.Rect(_RCX + 6, _RCY - _RR - 11, 32, 16), border_radius=4)
 
-    # ------------------------------------------------------------------
-    # 3. REAR WHEEL RIM + SPOKES + HUB
-    # ------------------------------------------------------------------
-    pygame.draw.circle(surf, _C_RIM, (_RCX, _RCY), _RR - 7)
+    # ---------------------------------------------------------------
+    # 3.  REAR WHEEL RIM + 6 SPOKES + HUB
+    # ---------------------------------------------------------------
+    rim_r = _RR - 8
+    pygame.draw.circle(surf, _C_RIM, (_RCX, _RCY), rim_r)
     for i in range(6):
         a = math.radians(i * 60 + 15)
-        x1 = int(_RCX + 10 * math.cos(a));  y1 = int(_RCY + 10 * math.sin(a))
-        x2 = int(_RCX + (_RR - 9) * math.cos(a)); y2 = int(_RCY + (_RR - 9) * math.sin(a))
+        x1 = int(_RCX + 11 * math.cos(a));      y1 = int(_RCY + 11 * math.sin(a))
+        x2 = int(_RCX + (rim_r - 2) * math.cos(a)); y2 = int(_RCY + (rim_r - 2) * math.sin(a))
         pygame.draw.line(surf, _C_SPOKE, (x1, y1), (x2, y2), 2)
-    pygame.draw.circle(surf, _C_HUB, (_RCX, _RCY), 10)
-    pygame.draw.circle(surf, _C_DARK, (_RCX, _RCY), 10, 1)
+    pygame.draw.circle(surf, _C_HUB,  (_RCX, _RCY), 11)
+    pygame.draw.circle(surf, _C_DARK, (_RCX, _RCY), 11, 1)
 
-    # ------------------------------------------------------------------
-    # 4. CHASSIS / BODY PLATFORM  (between the wheels)
-    # ------------------------------------------------------------------
-    body_top  = _RCY - _RR + 22
-    body_bot  = _GROUND
-    body_left = _RCX - 6
+    # ---------------------------------------------------------------
+    # 4.  CHASSIS / BODY  (not a flat rectangle — has shape)
+    #     Shows:  side rail, rear axle housing, transmission hump
+    # ---------------------------------------------------------------
+    body_top   = _RCY - _RR + 28   # 80 — sits below the fender
+    body_bot   = _GROUND            # 152
+    body_left  = _RCX - 10
     body_right = _FCX + _FR + 2
-    pygame.draw.rect(surf, _C_BODY,
-                     pygame.Rect(body_left, body_top, body_right - body_left, body_bot - body_top),
-                     border_radius=5)
 
-    # ------------------------------------------------------------------
-    # 5. BONNET / HOOD  (long horizontal hood, the tractor's "face")
-    # ------------------------------------------------------------------
-    # Slightly tapered — a touch lower at the front to match TE20 profile
-    bonnet_poly = [
-        (_BON_LEFT,      _BON_TOP),
-        (_BON_RIGHT + 5, _BON_TOP + 5),   # front-top (slopes slightly down)
-        (_BON_RIGHT + 5, _BON_BOT),        # front-bottom
-        (_BON_LEFT,      _BON_BOT),        # back-bottom
+    # Main body polygon — tapers at front to show axle geometry
+    chassis_pts = [
+        (body_left,          body_top + 4),
+        (_BON_LEFT - 4,      body_top),          # rises to meet bonnet
+        (body_right,         body_top + 8),      # front corner
+        (body_right,         body_bot - 10),     # front-bottom
+        (body_right - 22,    body_bot - 6),      # front axle step
+        (body_left + 22,     body_bot - 6),      # rear axle step
+        (body_left,          body_bot - 12),     # rear lower
     ]
-    pygame.draw.polygon(surf, _C_BONNET, bonnet_poly)
-    # Top highlight line
-    pygame.draw.line(surf, (198, 195, 188),
-                     (_BON_LEFT + 2, _BON_TOP + 1),
-                     (_BON_RIGHT + 3, _BON_TOP + 6), 1)
-    # Bottom shadow line
+    pygame.draw.polygon(surf, _C_BODY, chassis_pts)
+
+    # Transmission / gearbox hump — distinctive rounded box in mid-body
+    tx  = _RCX + 28
+    ty  = body_top + 2
+    tw, th = 42, body_bot - body_top - 20
+    pygame.draw.rect(surf, _C_TRANS,
+                     pygame.Rect(tx, ty, tw, th), border_radius=6)
+    # Side detail line on trans housing
+    pygame.draw.line(surf, _C_DARK,
+                     (tx + 4, ty + 4), (tx + 4, ty + th - 4), 1)
+
+    # Footboard step (operator's footrest, visible on the side)
+    pygame.draw.rect(surf, _C_DARK,
+                     pygame.Rect(body_left + 14, body_bot - 8, 28, 5), border_radius=2)
+
+    # ---------------------------------------------------------------
+    # 5.  BONNET / HOOD
+    #     Rounded top, tapers slightly toward nose, raised at engine end
+    # ---------------------------------------------------------------
+    # Main bonnet polygon — slightly higher at the rear (engine hump)
+    bonnet_pts = [
+        (_BON_LEFT,         _BON_TOP + 4),       # rear-base (meets body)
+        (_BON_LEFT + 4,     _BON_TOP),            # rear-top shoulder
+        (_BON_RIGHT - 6,    _BON_TOP + 3),        # front-top (slopes down)
+        (_BON_RIGHT + 2,    _BON_TOP + 10),       # nose shoulder
+        (_BON_RIGHT + 2,    _BON_BOT),            # nose-bottom
+        (_BON_LEFT,         _BON_BOT),            # rear-bottom
+    ]
+    pygame.draw.polygon(surf, _C_BONNET, bonnet_pts)
+    # Top highlight
+    pygame.draw.line(surf, (200, 197, 190),
+                     (_BON_LEFT + 5, _BON_TOP + 1),
+                     (_BON_RIGHT - 5, _BON_TOP + 4), 1)
+    # Underside shadow line
     pygame.draw.line(surf, _C_DARK,
                      (_BON_LEFT, _BON_BOT),
-                     (_BON_RIGHT + 5, _BON_BOT), 1)
+                     (_BON_RIGHT + 2, _BON_BOT), 1)
+    # Engine cover panel line (horizontal seam near rear of bonnet)
+    pygame.draw.line(surf, _C_DARK,
+                     (_BON_LEFT + 4, _BON_TOP + 12),
+                     (_BON_LEFT + 36, _BON_TOP + 14), 1)
 
-    # ------------------------------------------------------------------
-    # 6. EXHAUST PIPE
-    # ------------------------------------------------------------------
-    pipe_h = _BON_TOP - _EXH_TOP + 6
+    # ---------------------------------------------------------------
+    # 6.  EXHAUST PIPE  (tall, with flared cap)
+    # ---------------------------------------------------------------
+    pipe_h = _BON_TOP - _EXH_TOP + 8
     pygame.draw.rect(surf, _C_EXHAUST,
-                     pygame.Rect(_EXH_X, _EXH_TOP, 5, pipe_h), border_radius=1)
+                     pygame.Rect(_EXH_X, _EXH_TOP, 6, pipe_h), border_radius=2)
     # Flared cap
     pygame.draw.rect(surf, _C_DARK,
-                     pygame.Rect(_EXH_X - 3, _EXH_TOP - 3, 11, 5), border_radius=3)
-
-    # ------------------------------------------------------------------
-    # 7. SEAT
-    # ------------------------------------------------------------------
-    seat_cx = _RCX + 14
-    seat_cy = body_top - 6
-    pygame.draw.ellipse(surf, _C_SEAT,
-                        pygame.Rect(seat_cx - 12, seat_cy - 5, 24, 11))
-    # Seat post
-    pygame.draw.line(surf, _C_DARK,
-                     (seat_cx + 2, seat_cy + 5), (seat_cx + 4, body_top), 2)
-
-    # ------------------------------------------------------------------
-    # 8. FRONT TYRE + RIM + HUB
-    # ------------------------------------------------------------------
-    pygame.draw.circle(surf, _C_TYRE, (_FCX, _FCY), _FR)
-    pygame.draw.circle(surf, (54, 51, 47), (_FCX, _FCY), _FR, 2)
-    pygame.draw.circle(surf, _C_RIM, (_FCX, _FCY), _FR - 3)
-    pygame.draw.circle(surf, _C_HUB, (_FCX, _FCY), 5)
-    pygame.draw.circle(surf, _C_DARK, (_FCX, _FCY), 5, 1)
-
-    # ------------------------------------------------------------------
-    # 9. RADIATOR / NOSE (front face of bonnet)
-    # ------------------------------------------------------------------
-    nose_x   = _BON_RIGHT + 4
-    nose_top = _BON_TOP + 5
-    nose_bot = _BON_BOT - 1
-    nose_h   = nose_bot - nose_top
-    # Grill face
+                     pygame.Rect(_EXH_X - 4, _EXH_TOP - 4, 14, 6), border_radius=3)
+    # Pipe clamp ring on bonnet
     pygame.draw.rect(surf, _C_DARK,
-                     pygame.Rect(nose_x, nose_top, 9, nose_h), border_radius=3)
-    # Horizontal grill lines
-    for gy in range(nose_top + 3, nose_bot - 2, 4):
-        pygame.draw.line(surf, (78, 75, 70), (nose_x + 1, gy), (nose_x + 7, gy), 1)
+                     pygame.Rect(_EXH_X - 2, _BON_TOP + 4, 10, 4), border_radius=2)
 
-    # ------------------------------------------------------------------
-    # 10. HEADLIGHTS  (white circles — pupils drawn on top each frame)
-    # ------------------------------------------------------------------
-    pygame.draw.circle(surf, _C_HL_FILL, _HL_UPPER, _HL_R1)
-    pygame.draw.circle(surf, _C_HL_FILL, _HL_LOWER, _HL_R2)
-    # Thin outline so they read against the dark nose
-    pygame.draw.circle(surf, _C_DARK, _HL_UPPER, _HL_R1, 1)
-    pygame.draw.circle(surf, _C_DARK, _HL_LOWER, _HL_R2, 1)
+    # ---------------------------------------------------------------
+    # 7.  STEERING COLUMN + STEERING WHEEL
+    #     The most recognisable feature of a vintage open-cab tractor.
+    # ---------------------------------------------------------------
+    # Column — angled toward driver
+    col_base_x = _SW_CX + 6
+    col_base_y = _BON_TOP + 4
+    pygame.draw.line(surf, _C_DARK,
+                     (col_base_x, col_base_y),
+                     (_SW_CX, _SW_CY + _SW_R), 3)
+
+    # Steering wheel rim (thick ring — bakelite/metal)
+    pygame.draw.circle(surf, _C_STEER_RIM, (_SW_CX, _SW_CY), _SW_R, 4)
+    # 3 spokes visible from the side
+    for spoke_angle in (60, 180, 300):
+        a = math.radians(spoke_angle)
+        sx = int(_SW_CX + _SW_R * math.cos(a))
+        sy = int(_SW_CY + _SW_R * math.sin(a))
+        pygame.draw.line(surf, _C_DARK, (_SW_CX, _SW_CY), (sx, sy), 2)
+    # Hub
+    pygame.draw.circle(surf, _C_DARK, (_SW_CX, _SW_CY), 5)
+
+    # ---------------------------------------------------------------
+    # 8.  SEAT
+    # ---------------------------------------------------------------
+    seat_cx = _SW_CX - 12
+    seat_cy = _BON_TOP - 6
+    # Seat pan
+    pygame.draw.ellipse(surf, _C_SEAT,
+                        pygame.Rect(seat_cx - 14, seat_cy - 6, 28, 14))
+    # Seat spring post
+    pygame.draw.line(surf, _C_DARK,
+                     (seat_cx, seat_cy + 6), (seat_cx + 4, _BON_TOP + 2), 3)
+
+    # ---------------------------------------------------------------
+    # 9.  FRONT TYRE + RIM + HUB
+    # ---------------------------------------------------------------
+    pygame.draw.circle(surf, _C_TYRE, (_FCX, _FCY), _FR)
+    pygame.draw.circle(surf, (56, 53, 48), (_FCX, _FCY), _FR, 3)
+    pygame.draw.circle(surf, _C_RIM, (_FCX, _FCY), _FR - 4)
+    pygame.draw.circle(surf, _C_HUB, (_FCX, _FCY), 6)
+    pygame.draw.circle(surf, _C_DARK, (_FCX, _FCY), 6, 1)
+
+    # ---------------------------------------------------------------
+    # 10. RADIATOR / NOSE FACE
+    # ---------------------------------------------------------------
+    nose_x   = _BON_RIGHT + 2
+    nose_top = _BON_TOP + 9
+    nose_bot = _BON_BOT
+    nose_h   = nose_bot - nose_top
+    # Nose face — slightly curved front
+    pygame.draw.rect(surf, _C_DARK,
+                     pygame.Rect(nose_x, nose_top, 12, nose_h), border_radius=4)
+    # Horizontal grill slots
+    for gy in range(nose_top + 4, nose_bot - 4, 5):
+        pygame.draw.line(surf, (72, 69, 64),
+                         (nose_x + 2, gy), (nose_x + 9, gy), 2)
+    # Grill surround outline
+    pygame.draw.rect(surf, (78, 75, 70),
+                     pygame.Rect(nose_x, nose_top, 12, nose_h), 1, border_radius=4)
+
+    # ---------------------------------------------------------------
+    # 11. HEADLIGHTS  (large white circles — pupils drawn each frame)
+    # ---------------------------------------------------------------
+    for pos, r in ((_HL_UPPER, _HL_R1), (_HL_LOWER, _HL_R2)):
+        # Outer ring (chrome bezel)
+        pygame.draw.circle(surf, (145, 142, 138), pos, r + 2)
+        # White lens
+        pygame.draw.circle(surf, _C_HL_FILL, pos, r)
 
     return surf
 
@@ -261,13 +341,11 @@ class EyeState(Enum):
 
 class Tractor:
     """
-    Player-controlled tractor. Procedurally drawn as a TE20 side profile.
-    Static geometry is pre-baked into a cached surface at init; only the
-    animated headlight pupils are redrawn each frame.
+    Player-controlled tractor. Procedurally drawn TE20 side profile.
+    Static geometry is pre-baked into a cached surface; only the animated
+    headlight pupils are redrawn each frame.
     """
 
-    # Cache the static sprite at class level so multiple Tractor instances
-    # (e.g. across rounds) don't re-draw it every time.
     _sprite_cache: pygame.Surface | None = None
 
     def __init__(self) -> None:
@@ -289,7 +367,6 @@ class Tractor:
         self._eye_timer: float   = 0.0
         self._happy_timer: float = 0.0
 
-        # Build (or reuse) the cached static sprite surface
         if Tractor._sprite_cache is None:
             Tractor._sprite_cache = _build_sprite()
         self._sprite: pygame.Surface = Tractor._sprite_cache
@@ -321,7 +398,6 @@ class Tractor:
         self._eye_timer += dt
         self._pulse      += dt * 4.0
 
-        # Keep HAPPY visible for its full duration
         if self._happy_timer > 0.0:
             self._happy_timer -= dt
             self.eye_state = EyeState.HAPPY
@@ -374,21 +450,17 @@ class Tractor:
     # ------------------------------------------------------------------
 
     def draw(self, surface: pygame.Surface) -> None:
-        # Noise ring (behind tractor)
         if self.noise_colour is not None and self.noise_radius > 0:
             pulse_r = max(1, int(self.noise_radius + math.sin(self._pulse) * 8))
             pygame.draw.circle(surface, self.noise_colour, self.rect.center, pulse_r, 2)
 
-        # Static tractor sprite — centred on hitbox
         sprite_rect = self._sprite.get_rect(center=self.rect.center)
         surface.blit(self._sprite, sprite_rect)
 
-        # Animated pupils on top of headlights
         hl_u = (sprite_rect.x + _HL_UPPER[0], sprite_rect.y + _HL_UPPER[1])
         hl_l = (sprite_rect.x + _HL_LOWER[0], sprite_rect.y + _HL_LOWER[1])
         self._draw_pupils(surface, hl_u, hl_l)
 
-        # Cover ring
         if self.is_hidden:
             pygame.draw.rect(surface, COLOUR_COVER_FULL, self.rect,
                              TRACTOR_COVER_RING_WIDTH, border_radius=4)
@@ -411,52 +483,48 @@ class Tractor:
 
         def pupil(pos: tuple[int, int], r: int, ox: int = 0, oy: int = 0,
                   pr: int = -1) -> None:
-            pr = pr if pr >= 0 else max(1, r - 2)
+            pr = pr if pr >= 0 else max(2, r - 6)
             pygame.draw.circle(surface, _C_PUPIL, (pos[0] + ox, pos[1] + oy), pr)
 
-        def glint(pos: tuple[int, int]) -> None:
-            """Tiny white highlight on pupil — makes eyes feel alive."""
-            pygame.draw.circle(surface, _C_HL_FILL, (pos[0] - 2, pos[1] - 2), 1)
+        def glint(pos: tuple[int, int], ox: int = 0, oy: int = 0) -> None:
+            pygame.draw.circle(surface, _C_HL_FILL,
+                               (pos[0] + ox - 3, pos[1] + oy - 3), 2)
 
         if self.eye_state == EyeState.NORMAL:
-            # Pupil fills ~half the headlight so white ring is clearly visible
             for pos, r in ((hl_u, r1), (hl_l, r2)):
-                pupil(pos, r, pr=max(1, r - 4))
+                pupil(pos, r)
                 glint(pos)
 
         elif self.eye_state == EyeState.NERVOUS:
-            # Pupils dart side to side — hide-and-peek
-            dart = int(math.sin(t * 7.0) * (r1 - 3))
+            dart = int(math.sin(t * 7.0) * (r1 - 5))
             for pos, r in ((hl_u, r1), (hl_l, r2)):
-                pupil(pos, r, ox=dart, pr=max(1, r - 4))
-                glint((pos[0] + dart, pos[1]))
+                pupil(pos, r, ox=dart)
+                glint(pos, ox=dart)
 
         elif self.eye_state == EyeState.WIDE:
-            # Tiny pinpoint pupils — wide-eyed fear
             for pos, r in ((hl_u, r1), (hl_l, r2)):
-                pupil(pos, r, pr=2)
+                pupil(pos, r, pr=3)
                 glint(pos)
 
         elif self.eye_state == EyeState.FOCUSED:
-            # Pupils shift inward — determined concentration
             for pos, r in ((hl_u, r1), (hl_l, r2)):
-                pupil(pos, r, ox=-2, pr=max(1, r - 4))
-                glint((pos[0] - 2, pos[1]))
+                pupil(pos, r, ox=-3)
+                glint(pos, ox=-3)
 
         elif self.eye_state == EyeState.HAPPY:
-            # Crescent scrunch — draw pupil then mask top half with white
             for pos, r in ((hl_u, r1), (hl_l, r2)):
-                pr = max(2, r - 3)
+                pr = max(3, r - 5)
                 pygame.draw.circle(surface, _C_PUPIL, pos, pr)
-                pygame.draw.circle(surface, _C_HL_FILL, (pos[0], pos[1] - pr + 1), pr)
+                # Crescent: mask top half with white
+                pygame.draw.circle(surface, _C_HL_FILL,
+                                   (pos[0], pos[1] - pr + 2), pr)
 
         elif self.eye_state == EyeState.SHOCKED:
-            # Jitter in panic
             for pos, r in ((hl_u, r1), (hl_l, r2)):
-                jx = random.randint(-(r - 3), r - 3)
-                jy = random.randint(-(r - 3), r - 3)
-                pupil(pos, r, ox=jx, oy=jy, pr=max(1, r - 4))
-                glint((pos[0] + jx, pos[1] + jy))
+                jx = random.randint(-(r - 6), r - 6)
+                jy = random.randint(-(r - 6), r - 6)
+                pupil(pos, r, ox=jx, oy=jy, pr=max(2, r - 8))
+                glint(pos, ox=jx, oy=jy)
 
     # ------------------------------------------------------------------
     # Properties
