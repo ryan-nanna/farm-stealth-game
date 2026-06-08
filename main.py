@@ -23,7 +23,10 @@ from game.settings import (
     TARGET_FPS,
     VISION_CONE_RANGE,
     WINDOW_TITLE,
+    WORLD_HEIGHT,
+    WORLD_WIDTH,
 )
+from game.systems.camera import Camera
 from game.entities.dealer import Hubert
 from game.entities.hieronymus import Hieronymus
 from game.entities.scrap_truck import ScrapTruck
@@ -99,12 +102,12 @@ def _desired_eye_state(
     hubert_close = math.hypot(
         hubert.center[0] - tractor.rect.centerx,
         hubert.center[1] - tractor.rect.centery,
-    ) < 260
+    ) < 520
     hiero_close = (
         hieronymus is not None and math.hypot(
             hieronymus.center[0] - tractor.rect.centerx,
             hieronymus.center[1] - tractor.rect.centery,
-        ) < 220
+        ) < 440
     )
 
     if hubert_threatening or hiero_threatening:
@@ -122,6 +125,10 @@ def main() -> None:
 
     screen: pygame.Surface = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption(WINDOW_TITLE)
+
+    # World surface — all game entities draw here; camera blits a viewport to screen
+    world: pygame.Surface = pygame.Surface((WORLD_WIDTH, WORLD_HEIGHT))
+    camera = Camera()
 
     clock         = pygame.time.Clock()
     input_manager = InputManager()
@@ -238,30 +245,39 @@ def main() -> None:
                 game_state = GameState.PLAYING
 
         # -------------------------------------------------------------------
-        # Draw
+        # Draw — everything goes to `world`; camera blits viewport to screen
         # -------------------------------------------------------------------
 
         if game_state == GameState.TITLE:
-            # Draw the game world dimly behind the title
-            level.draw_ground(screen)
-            gramps.draw(screen)
-            level.draw_canopies(screen)
+            level.draw_ground(world)
+            gramps.draw(world)
+            level.draw_canopies(world)
+            camera.update(tractor.rect)
+            screen.blit(world, (0, 0), camera.viewport)
             title_screen.draw(screen)
         else:
-            level.draw_ground(screen)
-            gramps.draw(screen)
-            hubert.draw(screen)
+            level.draw_ground(world)
+            gramps.draw(world)
+            hubert.draw(world)
             if hieronymus is not None:
-                hieronymus.draw(screen)
+                hieronymus.draw(world)
             if truck is not None:
-                truck.draw(screen)
-            tractor.draw(screen)
-            level.draw_canopies(screen)
+                truck.draw(world)
+            tractor.draw(world)
+            level.draw_canopies(world)
+
+            # Update camera to follow tractor (only in active play states)
+            if game_state in (GameState.PLAYING, GameState.WIN):
+                camera.update(tractor.rect)
+
+            # Blit the camera viewport to the actual screen
+            screen.blit(world, (0, 0), camera.viewport)
 
             dealer_positions = [hubert.rect.center]
             if hieronymus is not None:
                 dealer_positions.append(hieronymus.rect.center)
 
+            # HUD is drawn in screen space (not world space) — always on top
             if game_state in (GameState.PLAYING, GameState.WIN):
                 hud.draw(
                     screen, obj_manager, tractor.noise_colour,

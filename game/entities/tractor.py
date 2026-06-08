@@ -22,8 +22,8 @@ from game.settings import (
     NOISE_RADIUS_FAST,
     NOISE_RADIUS_SLOW,
     NOISE_RADIUS_STILL,
-    SCREEN_HEIGHT,
-    SCREEN_WIDTH,
+    WORLD_HEIGHT,
+    WORLD_WIDTH,
     TRACTOR_COVER_RING_WIDTH,
     TRACTOR_EYE_HAPPY_DURATION,
     TRACTOR_HEIGHT,
@@ -411,7 +411,7 @@ class Tractor:
             dx /= magnitude
             dy /= magnitude
 
-        self._x = max(0.0, min(self._x + dx * speed * dt, SCREEN_WIDTH  - TRACTOR_WIDTH))
+        self._x = max(0.0, min(self._x + dx * speed * dt, WORLD_WIDTH  - TRACTOR_WIDTH))
         self.rect.x = int(self._x)
         for wall in wall_rects:
             if self.rect.colliderect(wall):
@@ -419,7 +419,7 @@ class Tractor:
                 elif dx < 0: self.rect.left  = wall.right
                 self._x = float(self.rect.x)
 
-        self._y = max(0.0, min(self._y + dy * speed * dt, SCREEN_HEIGHT - TRACTOR_HEIGHT))
+        self._y = max(0.0, min(self._y + dy * speed * dt, WORLD_HEIGHT - TRACTOR_HEIGHT))
         self.rect.y = int(self._y)
         for wall in wall_rects:
             if self.rect.colliderect(wall):
