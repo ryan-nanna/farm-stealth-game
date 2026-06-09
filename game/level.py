@@ -861,48 +861,148 @@ class Level:
         pygame.draw.ellipse(surface, (78, 148, 205), r.inflate(-20, -14), 1)
 
     def _draw_scarecrow(self, surface: pygame.Surface) -> None:
-        r  = pygame.Rect(*MAP_SCARECROW_RECT)   # (600, 255, 55, 80)
+        """
+        "Clunky" style: bucket-head scarecrow in a black jacket.
+        Arms outstretched, white gloves, red bow tie, tall top hat,
+        smiley face painted on the tin-can head. Straw wisps everywhere.
+        """
+        r  = pygame.Rect(*MAP_SCARECROW_RECT)
         cx = r.centerx
 
-        # Main post
-        post_w = 8
+        # Palette
+        _BLACK   = ( 28,  24,  20)
+        _JACKET  = ( 38,  34,  32)   # dark charcoal suit
+        _BUCKET  = (172, 175, 178)   # tin-can grey
+        _BUCKET_D = (138, 140, 144)  # darker grey for bucket shading
+        _STRAW   = (205, 172,  62)   # bright wheat straw
+        _GLOVE   = (245, 242, 235)   # off-white gloves
+        _BOWTIE  = (210,  35,  35)   # red bow tie
+        _FACE_PL = (200, 198, 195)   # face paint (slightly lighter than bucket)
+        _SMILE   = ( 48,  38,  28)   # painted-on features
+
+        # ── Wooden stake / post ──────────────────────────────────────
+        stake_top = r.y + 90
         pygame.draw.rect(surface, COLOUR_TREE_TRUNK,
-                         pygame.Rect(cx - post_w // 2, r.y + 24, post_w, r.height - 24),
+                         pygame.Rect(cx - 5, stake_top, 10, r.bottom - stake_top),
                          border_radius=2)
+        pygame.draw.line(surface, (88, 58, 28), (cx - 5, stake_top), (cx - 5, r.bottom), 1)
 
-        # Crossbar / arms
-        bar_y = r.y + r.height // 3
-        pygame.draw.rect(surface, COLOUR_TREE_TRUNK,
-                         pygame.Rect(r.x, bar_y - 4, r.width, 8), border_radius=3)
+        # ── Straw wisps from body / sleeves ─────────────────────────
+        for sx, sy, ex, ey in [
+            (r.x + 10, r.y + 90, r.x + 2,  r.y + 82),
+            (r.x + 18, r.y + 88, r.x + 8,  r.y + 78),
+            (r.right - 10, r.y + 90, r.right - 2,  r.y + 82),
+            (r.right - 18, r.y + 88, r.right - 8,  r.y + 78),
+            (cx - 6,  r.y + 88, cx - 12, r.y + 96),
+        ]:
+            pygame.draw.line(surface, _STRAW, (sx, sy), (ex, ey), 2)
 
-        # Shirt on the arms
-        pygame.draw.rect(surface, (108, 82, 148),
-                         pygame.Rect(r.x + 4, bar_y - 3, r.width - 8, 10), border_radius=2)
+        # ── Jacket body ─────────────────────────────────────────────
+        jacket = pygame.Rect(cx - 36, r.y + 72, 72, 54)
+        pygame.draw.rect(surface, _JACKET, jacket, border_radius=4)
+        # Lapels (two angled white triangles suggest collar/lapels)
+        pygame.draw.polygon(surface, (220, 218, 212), [
+            (cx,      jacket.y + 2),
+            (cx - 14, jacket.y + 18),
+            (cx,      jacket.y + 22),
+        ])
+        pygame.draw.polygon(surface, (220, 218, 212), [
+            (cx,      jacket.y + 2),
+            (cx + 14, jacket.y + 18),
+            (cx,      jacket.y + 22),
+        ])
+        pygame.draw.rect(surface, _BLACK, jacket, 2, border_radius=4)
 
-        # Head (straw-stuffed)
-        head_r  = 12
-        head_cy = r.y + 13
-        pygame.draw.circle(surface, COLOUR_WHEAT, (cx, head_cy), head_r)
-        # Straw texture lines
-        for sa in range(-3, 4, 2):
-            pygame.draw.line(surface, (195, 160, 68),
-                             (cx + sa * 3, head_cy - head_r + 3),
-                             (cx + sa * 3, head_cy + head_r - 3), 1)
-        pygame.draw.circle(surface, COLOUR_DARK_GREY, (cx, head_cy), head_r, 2)
+        # ── Arms (outstretched wide, in jacket sleeves) ─────────────
+        arm_shoulder_y = r.y + 82
+        arm_end_y      = r.y + 88
+        for arm_x in (r.x + 4, r.right - 4):
+            pygame.draw.line(surface, _JACKET,
+                             (cx, arm_shoulder_y), (arm_x, arm_end_y), 16)
+            pygame.draw.line(surface, _BLACK,
+                             (cx, arm_shoulder_y), (arm_x, arm_end_y), 1)
 
-        # Hat
-        brim  = pygame.Rect(cx - 14, head_cy - head_r - 2, 28, 5)
-        crown = pygame.Rect(cx - 10, head_cy - head_r - 12, 20, 12)
-        pygame.draw.rect(surface, COLOUR_WOOD_DARK, crown, border_radius=2)
-        pygame.draw.rect(surface, COLOUR_WOOD_DARK, brim)
+        # ── White gloves at arm ends ─────────────────────────────────
+        for gx in (r.x + 2, r.right - 2):
+            pygame.draw.circle(surface, _GLOVE, (gx, arm_end_y), 10)
+            pygame.draw.circle(surface, (200, 198, 192), (gx, arm_end_y), 10, 1)
+            # Thumb suggestion
+            pygame.draw.circle(surface, _GLOVE, (gx + (6 if gx > cx else -6), arm_end_y - 4), 5)
 
-        # X-eyes and smile
-        for ex in (cx - 5, cx + 3):
-            pygame.draw.line(surface, COLOUR_DARK_GREY, (ex, head_cy - 4), (ex + 2, head_cy - 2), 1)
-            pygame.draw.line(surface, COLOUR_DARK_GREY, (ex + 2, head_cy - 4), (ex, head_cy - 2), 1)
-        pygame.draw.arc(surface, COLOUR_DARK_GREY,
-                        pygame.Rect(cx - 4, head_cy + 1, 8, 5),
-                        math.pi, 2 * math.pi, 1)
+        # ── Red bow tie ──────────────────────────────────────────────
+        bty = r.y + 72
+        pygame.draw.polygon(surface, _BOWTIE, [
+            (cx - 16, bty - 5), (cx,      bty),     (cx - 16, bty + 5),
+        ])
+        pygame.draw.polygon(surface, _BOWTIE, [
+            (cx + 16, bty - 5), (cx,      bty),     (cx + 16, bty + 5),
+        ])
+        pygame.draw.circle(surface, (175, 28, 28), (cx, bty), 4)   # bow knot
+
+        # ── Straw wisps from hat ─────────────────────────────────────
+        for hsx, hsy, hex_, hey in [
+            (cx - 8, r.y + 12, cx - 14, r.y + 2),
+            (cx,     r.y + 10, cx,      r.y - 2),
+            (cx + 8, r.y + 12, cx + 14, r.y + 2),
+            (cx - 4, r.y + 12, cx - 6,  r.y),
+            (cx + 4, r.y + 12, cx + 6,  r.y),
+        ]:
+            pygame.draw.line(surface, _STRAW, (hsx, hsy), (hex_, hey), 2)
+
+        # ── Top hat ──────────────────────────────────────────────────
+        # Brim (wide flat ring)
+        brim = pygame.Rect(cx - 28, r.y + 38, 56, 8)
+        pygame.draw.rect(surface, _BLACK, brim, border_radius=2)
+        pygame.draw.rect(surface, (55, 50, 46), brim, 1, border_radius=2)
+        # Crown (tall rectangle)
+        crown = pygame.Rect(cx - 20, r.y + 10, 40, 30)
+        pygame.draw.rect(surface, _BLACK, crown, border_radius=3)
+        # Hat band
+        pygame.draw.rect(surface, (55, 50, 45),
+                         pygame.Rect(cx - 20, r.y + 36, 40, 4))
+        pygame.draw.rect(surface, (65, 60, 54), crown, 1, border_radius=3)
+
+        # ── Bucket / tin-can head ────────────────────────────────────
+        head_top = r.y + 38
+        head_h   = 36
+        head_w   = 44
+        head = pygame.Rect(cx - head_w // 2, head_top, head_w, head_h)
+        pygame.draw.rect(surface, _BUCKET, head, border_radius=4)
+        # Shading (right side slightly darker)
+        shade = pygame.Rect(head.centerx, head.y + 2, head.w // 2 - 2, head.h - 4)
+        pygame.draw.rect(surface, _BUCKET_D, shade, border_radius=3)
+        # Rim line at top and bottom of bucket
+        pygame.draw.rect(surface, _BUCKET_D,
+                         pygame.Rect(head.x, head.y, head.w, 4), border_radius=2)
+        pygame.draw.rect(surface, _BUCKET_D,
+                         pygame.Rect(head.x, head.bottom - 4, head.w, 4), border_radius=2)
+        # Bucket outline
+        pygame.draw.rect(surface, (110, 112, 116), head, 2, border_radius=4)
+
+        # ── Painted-on smiley face ───────────────────────────────────
+        face_cx   = cx
+        face_ey   = head_top + 13   # eye y
+        face_ny   = head_top + 20   # nose y
+
+        # Eyes — two simple dark dots with white glint
+        for ex in (face_cx - 10, face_cx + 10):
+            pygame.draw.circle(surface, _SMILE, (ex, face_ey), 5)
+            pygame.draw.circle(surface, _FACE_PL, (ex - 1, face_ey - 1), 2)
+
+        # Nose — small rivet/circle
+        pygame.draw.circle(surface, _SMILE, (face_cx, face_ny), 4)
+        pygame.draw.circle(surface, _FACE_PL, (face_cx - 1, face_ny - 1), 1)
+
+        # Smile — wide painted-on grin
+        pygame.draw.arc(surface, _SMILE,
+                        pygame.Rect(face_cx - 14, face_ny - 2, 28, 16),
+                        math.pi, 2 * math.pi, 3)
+
+        # Rosy cheeks
+        for chx in (face_cx - 13, face_cx + 13):
+            chk = pygame.Surface((10, 6), pygame.SRCALPHA)
+            pygame.draw.ellipse(chk, (220, 120, 100, 80), chk.get_rect())
+            surface.blit(chk, (chx - 5, face_ey + 2))
 
     # ------------------------------------------------------------------
     # Debug overlays

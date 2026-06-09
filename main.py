@@ -144,7 +144,7 @@ def main() -> None:
     def _new_round() -> tuple[Hubert, Hieronymus | None, ScrapTruck | None, Tractor, ObjectiveManager]:
         hubert      = _make_hubert(round_num)
         hieronymus  = _make_hieronymus(round_num) if round_num >= 2 else None
-        truck       = ScrapTruck() if round_num >= 3 else None   # hard mode from round 3
+        truck       = ScrapTruck(round_num)   # present every round, patrol pattern rotates
         tractor     = Tractor()
         obj_manager = ObjectiveManager(
             level.pig_pen_rect,

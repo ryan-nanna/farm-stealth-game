@@ -228,8 +228,8 @@ HIERONYMUS_VISION_HALF_ANGLE: float = 32.0
 HIERONYMUS_SNIFF_DIST:        float = 400.0   # doubled
 HIERONYMUS_CURIOUS_TIME:      float = 2.5
 
-HIERONYMUS_SPRITE_W: int = 80
-HIERONYMUS_SPRITE_H: int = 95
+HIERONYMUS_SPRITE_W: int = 110
+HIERONYMUS_SPRITE_H: int = 130
 
 # Hieronymus lurk waypoints (world coords, 2× scale, right-side focus)
 HIERONYMUS_LURK_WAYPOINTS: list[tuple[int, int]] = [
@@ -248,22 +248,33 @@ HIERONYMUS_LURK_WAYPOINTS: list[tuple[int, int]] = [
 # ---------------------------------------------------------------------------
 # Scrap Truck (Dealer 3 — hard mode)
 # ---------------------------------------------------------------------------
-SCRAP_TRUCK_SPEED:       float = 190.0   # doubled
-SCRAP_TRUCK_WIDTH:       int   = 50
-SCRAP_TRUCK_HEIGHT:      int   = 32
-SCRAP_TRUCK_BODY_COLOUR: tuple[int, int, int] = ( 95,  75,  55)
-SCRAP_TRUCK_CAB_COLOUR:  tuple[int, int, int] = ( 70,  55,  40)
-SCRAP_TRUCK_CATCH_DIST:  float = 96.0    # doubled
+SCRAP_TRUCK_SPEED:       float = 200.0
+SCRAP_TRUCK_WIDTH:       int   = 90     # hitbox (sprite is drawn larger)
+SCRAP_TRUCK_HEIGHT:      int   = 55
+SCRAP_TRUCK_CATCH_DIST:  float = 120.0  # large — truck is big
 
-# Perimeter loop around the world edges
-_M = 56
-SCRAP_TRUCK_WAYPOINTS: list[tuple[int, int]] = [
-    (WORLD_WIDTH - _M, _M),
-    (_M,               _M),
-    (_M,               WORLD_HEIGHT - _M),
-    (WORLD_WIDTH - _M, WORLD_HEIGHT - _M),
+# Art colours (pink/rust military surplus, inspired by reference image)
+SCRAP_TRUCK_BODY_COLOUR: tuple[int, int, int] = (195,  95, 110)   # distressed pink
+SCRAP_TRUCK_CAB_COLOUR:  tuple[int, int, int] = (175,  82,  98)   # cab (slightly darker)
+SCRAP_TRUCK_ROOF_COLOUR: tuple[int, int, int] = ( 60,  72,  46)   # dark olive roof
+SCRAP_TRUCK_BUMP_YELLOW: tuple[int, int, int] = (255, 215,  45)   # hazard stripe yellow
+
+# Patrol patterns — one per round (cycles when exhausted).
+# All patterns start near Hubert's spawn zone (bottom-left area).
+# Deliberately stay below the stone wall — truck is too big for the gaps.
+SCRAP_TRUCK_PATROL_PATTERNS: list[list[tuple[int, int]]] = [
+    # Round 1 — tight loop, bottom-left quarter
+    [(350, 1200), (720, 1310), (640, 1060), (280, 1020)],
+    # Round 2 — wider bottom sweep, more of the lower map
+    [(350, 1200), (1080, 1310), (940, 1020), (560, 960), (240, 1040)],
+    # Round 3 — crosses mid-map through left wall gap
+    [(350, 1200), (500, 1310), (480, 880), (800, 780), (820, 1060), (500, 1280)],
+    # Round 4 — large lower-map loop creating real pressure
+    [(350, 1200), (1400, 1320), (1500, 980), (960, 820), (480, 900), (280, 1100)],
 ]
-del _M
+
+# Legacy single-waypoint list (kept for any old references)
+SCRAP_TRUCK_WAYPOINTS: list[tuple[int, int]] = SCRAP_TRUCK_PATROL_PATTERNS[0]
 
 # ---------------------------------------------------------------------------
 # Objectives and TimingBar

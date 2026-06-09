@@ -38,9 +38,9 @@ from game.settings import (
     MAP_ENTRY_Y,
     NOISE_RADIUS_STILL,
     PARTIAL_COVER_RANGE_MULT,
-    SCREEN_HEIGHT,
-    SCREEN_WIDTH,
     VISION_CONE_ALPHA,
+    WORLD_HEIGHT,
+    WORLD_WIDTH,
     VISION_CONE_COLOUR,
     VISION_CONE_HALF_ANGLE,
     VISION_CONE_RANGE,
@@ -100,8 +100,9 @@ class Hubert:
 
         self.caught_tractor: bool = False
 
+        # World-sized so the cone renders correctly anywhere on the scrollable map
         self._vision_surf: pygame.Surface = pygame.Surface(
-            (SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA
+            (WORLD_WIDTH, WORLD_HEIGHT), pygame.SRCALPHA
         )
 
         # Photo sprite — loaded once; None means fall back to shape drawing

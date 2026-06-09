@@ -40,9 +40,9 @@ from game.settings import (
     MAP_ENTRY_Y,
     NOISE_RADIUS_STILL,
     PARTIAL_COVER_RANGE_MULT,
-    SCREEN_HEIGHT,
-    SCREEN_WIDTH,
     VISION_CONE_ALPHA,
+    WORLD_HEIGHT,
+    WORLD_WIDTH,
     HUBERT_CONE_CURIOUS,
     WAYPOINT_REACH_DIST,
 )
@@ -105,8 +105,9 @@ class Hieronymus:
 
         self.caught_tractor: bool = False
 
+        # World-sized so the cone renders correctly anywhere on the scrollable map
         self._vision_surf: pygame.Surface = pygame.Surface(
-            (SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA
+            (WORLD_WIDTH, WORLD_HEIGHT), pygame.SRCALPHA
         )
 
         self._sprite: pygame.Surface | None = None
@@ -301,7 +302,38 @@ class Hieronymus:
     def _draw_sprite(self, surface: pygame.Surface) -> None:
         assert self._sprite is not None
         r = self._sprite.get_rect(center=self.rect.center)
+
+        # Ground shadow ellipse — anchors him visually to the terrain
+        shadow_rect = pygame.Rect(r.centerx - 32, r.bottom - 18, 64, 20)
+        shadow_surf = pygame.Surface((shadow_rect.width, shadow_rect.height), pygame.SRCALPHA)
+        pygame.draw.ellipse(shadow_surf, (0, 0, 0, 90), shadow_surf.get_rect())
+        surface.blit(shadow_surf, shadow_rect.topleft)
+
+        # Coloured outline ring so he reads clearly against grass / dirt
+        # Purple tint to match his lurk cone colour
+        outline_col = (160, 80, 200)
+        for ox, oy in ((-2, 0), (2, 0), (0, -2), (0, 2)):
+            surface.blit(self._sprite, r.move(ox, oy))
+        # Tint the outline by drawing a small coloured rect at sprite edges (cheap outline)
+        outline_surf = pygame.Surface(self._sprite.get_size(), pygame.SRCALPHA)
+        outline_surf.fill((*outline_col, 60))
+        surface.blit(outline_surf, r.move(-2, -2).topleft)
+
+        # Actual sprite on top
         surface.blit(self._sprite, r)
+
+        # State indicator dot above head (makes it easy to read his mood at a glance)
+        state = self._sm.state
+        dot_col = {
+            HieronymusState.LURK:      (160,  80, 200),   # purple
+            HieronymusState.CURIOUS:   (255, 160,  40),   # orange
+            HieronymusState.SEARCHING: (255, 160,  40),
+            HieronymusState.ALERT:     (255,  50,  50),   # red
+            HieronymusState.CHASE:     (255,  50,  50),
+            HieronymusState.LEAVING:   (100, 200, 100),   # green
+        }.get(state, (200, 200, 200))
+        pygame.draw.circle(surface, dot_col, (r.centerx, r.top - 8), 7)
+        pygame.draw.circle(surface, (255, 255, 255), (r.centerx, r.top - 8), 7, 2)
 
     def _draw_shapes(self, surface: pygame.Surface) -> None:
         """Fallback: shorter stocky body with mismatched sock detail."""
@@ -331,7 +363,7 @@ class Hieronymus:
 
     @property
     def is_offscreen(self) -> bool:
-        return self.rect.top > SCREEN_HEIGHT
+        return self.rect.top > WORLD_HEIGHT
 
     @property
     def center(self) -> tuple[int, int]:
