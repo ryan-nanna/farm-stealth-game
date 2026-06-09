@@ -30,6 +30,8 @@ COLOUR_BLACK:          tuple[int, int, int] = (  0,   0,   0)
 
 # Farm structure colours — art-pass palette
 COLOUR_ROOF_DARK:      tuple[int, int, int] = ( 88,  68,  48)   # dark wood/slate roof
+COLOUR_ROOF_SILVER:    tuple[int, int, int] = (198, 203, 215)   # metal standing-seam roof
+COLOUR_BARN_FENCE:     tuple[int, int, int] = ( 32,  28,  25)   # near-black board fence
 COLOUR_FENCE_POST:     tuple[int, int, int] = (122,  82,  40)   # dark wood fence post
 COLOUR_TREE_HIGHLIGHT: tuple[int, int, int] = ( 88, 178,  55)   # bright sunlit canopy
 COLOUR_TREE_SHADOW:    tuple[int, int, int] = ( 35, 102,  22)   # canopy underside shadow
@@ -65,9 +67,9 @@ OBJ_BURST_DURATION: float = 1.5
 
 TRACTOR_EYE_HAPPY_DURATION: float = 0.8   # seconds
 
-# Starting position — top-right near barn
-TRACTOR_SPAWN_X: int = WORLD_WIDTH  - 240
-TRACTOR_SPAWN_Y: int = 160
+# Starting position — just outside the barn fence gate (south side)
+TRACTOR_SPAWN_X: int = 2280
+TRACTOR_SPAWN_Y: int = 620
 
 # ---------------------------------------------------------------------------
 # Input — axis / button deadzone
@@ -87,8 +89,11 @@ CONTROLLER_BUTTON_SELECT: int = 8
 # All coordinates are in world space (2560×1440).
 # ---------------------------------------------------------------------------
 
-# Safe zone / win condition (top-right)
-MAP_BARN_RECT:         tuple[int, int, int, int] = (2120,  30, 410, 300)
+# Safe zone / win condition — outer fence yard (top-right)
+# Touching this rect when all objectives complete = WIN
+MAP_BARN_RECT:         tuple[int, int, int, int] = (1960,  10, 600, 560)
+# Solid barn building — impassable wall collision
+MAP_BARN_BODY_RECT:    tuple[int, int, int, int] = (2060,  10, 460, 420)
 
 # Objective zone 2 — cow pasture (top-left)
 MAP_COW_PASTURE_RECT:  tuple[int, int, int, int] = (  30,  30, 500, 350)
@@ -107,7 +112,18 @@ MAP_WELL_RECT:         tuple[int, int, int, int] = (1550,1060, 180, 130)
 # New full-cover hiding spots (balances the tougher Hubert)
 MAP_HAY_BALE_1_RECT:   tuple[int, int, int, int] = (1640, 450, 120,  90)  # mid-right, crossing cover
 MAP_HAY_BALE_2_RECT:   tuple[int, int, int, int] = ( 660,1170, 130,  95)  # bottom-centre
-MAP_SILO_RECT:         tuple[int, int, int, int] = (1940,  30, 100, 130)  # near barn
+MAP_SILO_RECT:         tuple[int, int, int, int] = (1840,  30, 100, 130)  # near barn (left of fence)
+
+# Decorative / additional cover elements
+MAP_SHEEP_PEN_RECT:    tuple[int, int, int, int] = ( 380, 430, 280, 220)  # mid-left, partial cover
+MAP_POND_RECT:         tuple[int, int, int, int] = (1380, 820, 200, 130)  # below wall, partial cover
+MAP_ORCHARD_TREE_1:    tuple[int, int, int, int] = ( 780,  40, 140, 140)  # top-centre orchard
+MAP_ORCHARD_TREE_2:    tuple[int, int, int, int] = ( 960,  40, 140, 140)
+MAP_EXTRA_OAK_RECT:    tuple[int, int, int, int] = (1820,1150, 180, 180)  # bottom-right cover
+
+# Colour additions
+COLOUR_POND:           tuple[int, int, int] = ( 88, 162, 218)   # water blue
+COLOUR_SHEEP:          tuple[int, int, int] = (238, 235, 228)   # off-white wool
 
 # Stone wall — three segments across mid-map at y=740.
 # Passage gaps: x=530–870 (340 px) and x=1770–2070 (300 px).
@@ -280,9 +296,9 @@ GRAMPS_BODY_COLOUR:  tuple[int, int, int] = (110,  85,  60)
 GRAMPS_HEAD_COLOUR:  tuple[int, int, int] = (220, 175, 130)
 GRAMPS_HAT_COLOUR:   tuple[int, int, int] = ( 80,  55,  30)
 
-# MAP_BARN_RECT centre-x=2325, 2/3 down y=30+200=230
-GRAMPS_SPAWN_X: int = 2325
-GRAMPS_SPAWN_Y: int = 230
+# Gramps stands in the yard in front of the barn doors
+GRAMPS_SPAWN_X: int = 2290
+GRAMPS_SPAWN_Y: int = 490
 
 # ---------------------------------------------------------------------------
 # Intel mini-map overlay

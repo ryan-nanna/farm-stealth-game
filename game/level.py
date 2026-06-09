@@ -10,6 +10,7 @@ import math
 import pygame
 
 from game.settings import (
+    COLOUR_BARN_FENCE,
     COLOUR_BARN_RED,
     COLOUR_COVER_FULL,
     COLOUR_COVER_PARTIAL,
@@ -22,6 +23,7 @@ from game.settings import (
     COLOUR_PASTURE,
     COLOUR_PIG_PEN,
     COLOUR_ROOF_DARK,
+    COLOUR_ROOF_SILVER,
     COLOUR_SHED,
     COLOUR_STONE,
     COLOUR_STONE_MORTAR,
@@ -36,24 +38,32 @@ from game.settings import (
     DEBUG_COLOUR,
     DEBUG_DRAW_HITBOXES,
     MAP_APPLE_TREE_RECT,
+    MAP_BARN_BODY_RECT,
     MAP_BARN_RECT,
     MAP_CHICKEN_COOP_RECT,
     MAP_COW_PASTURE_RECT,
     MAP_ENTRY_HEIGHT,
     MAP_ENTRY_Y,
+    MAP_EXTRA_OAK_RECT,
     MAP_HAY_BALE_1_RECT,
     MAP_HAY_BALE_2_RECT,
     MAP_OAK_TREE_RECT,
     MAP_OLD_SHED_RECT,
+    MAP_ORCHARD_TREE_1,
+    MAP_ORCHARD_TREE_2,
     MAP_PATH_LEFT_RECT,
     MAP_PATH_RIGHT_RECT,
     MAP_PIG_PEN_RECT,
+    MAP_POND_RECT,
     MAP_SCARECROW_RECT,
+    MAP_SHEEP_PEN_RECT,
     MAP_SILO_RECT,
     MAP_WALL_CENTRE_RECT,
     MAP_WALL_LEFT_RECT,
     MAP_WALL_RIGHT_RECT,
     MAP_WELL_RECT,
+    COLOUR_POND,
+    COLOUR_SHEEP,
     WORLD_HEIGHT,
     WORLD_WIDTH,
 )
@@ -71,17 +81,21 @@ class Level:
     """
 
     def __init__(self) -> None:
-        # Collision walls
+        # Collision walls — tractor cannot pass through these
         self.wall_rects: list[pygame.Rect] = [
             pygame.Rect(*MAP_WALL_LEFT_RECT),
             pygame.Rect(*MAP_WALL_CENTRE_RECT),
             pygame.Rect(*MAP_WALL_RIGHT_RECT),
+            pygame.Rect(*MAP_BARN_BODY_RECT),   # solid barn building
         ]
 
         # Full cover zones
         self.full_cover_rects: list[pygame.Rect] = [
             pygame.Rect(*MAP_APPLE_TREE_RECT),
             pygame.Rect(*MAP_OAK_TREE_RECT),
+            pygame.Rect(*MAP_EXTRA_OAK_RECT),
+            pygame.Rect(*MAP_ORCHARD_TREE_1),
+            pygame.Rect(*MAP_ORCHARD_TREE_2),
             pygame.Rect(*MAP_CHICKEN_COOP_RECT),
             pygame.Rect(*MAP_OLD_SHED_RECT),
             pygame.Rect(*MAP_PIG_PEN_RECT),
@@ -97,6 +111,8 @@ class Level:
             pygame.Rect(*MAP_WALL_RIGHT_RECT),
             pygame.Rect(*MAP_WELL_RECT),
             pygame.Rect(*MAP_SCARECROW_RECT),
+            pygame.Rect(*MAP_SHEEP_PEN_RECT),
+            pygame.Rect(*MAP_POND_RECT),
         ]
 
         # Objective / win-condition rects
@@ -138,6 +154,7 @@ class Level:
     def draw_ground(self, surface: pygame.Surface) -> None:
         """Everything drawn before entities: terrain, structures, tree trunks."""
         self._draw_background(surface)
+        self._draw_flower_patches(surface)
         self._draw_zones(surface)
         self._draw_structures(surface)
         self._draw_tree_trunks(surface)
@@ -187,6 +204,8 @@ class Level:
     def _draw_zones(self, surface: pygame.Surface) -> None:
         self._draw_cow_pasture(surface)
         self._draw_pig_pen(surface)
+        self._draw_sheep_pen(surface)
+        self._draw_pond(surface)
 
     def _draw_cow_pasture(self, surface: pygame.Surface) -> None:
         r = pygame.Rect(*MAP_COW_PASTURE_RECT)
@@ -374,67 +393,216 @@ class Level:
                          (lx + 3, body_cy + body_r - 4), 1)
 
     def _draw_barn(self, surface: pygame.Surface) -> None:
-        r = pygame.Rect(*MAP_BARN_RECT)   # (1060, 15, 205, 150)
+        """
+        Front-facing barn illustration (Stardew / Zelda convention).
+        The barn "stands up" in the world — big silver peaked roof at top,
+        red vertical-board walls below, two sets of white X-brace double
+        doors, loft windows, cupola with rooster weathervane.
+        Surrounded by a black board fence with a gate on the south side.
+        """
+        # ── Core geometry ─────────────────────────────────────────────
+        BX      = 2060       # left wall of barn building
+        BW      = 460        # barn width
+        PEAK_X  = BX + BW // 2   # 2290 — horizontal centre
+        PEAK_Y  = 10         # roof peak (top of world)
+        EAVE_L  = BX - 34   # eave overhang left
+        EAVE_R  = BX + BW + 34  # eave overhang right
+        EAVE_Y  = 230        # where roof meets front wall
+        WALL_BOT = 430       # bottom of front wall / foundation top
 
-        # ── Top-down peaked roof ──────────────────────────────────────
-        # Visible from above: two sloping faces meet at a central ridge.
-        # Left slope (slightly darker — in shadow), right slope (lit),
-        # ridge line down the centre.
-        ridge_x = r.centerx
+        # ── Fence yard (drawn first — acts as background) ─────────────
+        YARD = pygame.Rect(*MAP_BARN_RECT)   # (1960, 10, 600, 560)
 
-        # Left roof face (slightly darker)
-        left_pts = [
-            (r.x,      r.y),
-            (r.x,      r.bottom),
-            (ridge_x,  r.bottom - 10),
-            (ridge_x,  r.y + 10),
-        ]
-        pygame.draw.polygon(surface, (102, 82, 58), left_pts)
+        # Yard grass — slightly brighter/warmer than open field
+        pygame.draw.rect(surface, (118, 192, 68), YARD)
 
-        # Right roof face (lit side)
-        right_pts = [
-            (ridge_x,  r.y + 10),
-            (ridge_x,  r.bottom - 10),
-            (r.right,  r.bottom),
-            (r.right,  r.y),
-        ]
-        pygame.draw.polygon(surface, (122, 100, 72), right_pts)
+        # Worn dirt patch in front of the doors (where Gramps stands)
+        dirt = pygame.Rect(PEAK_X - 130, WALL_BOT - 10, 260, 180)
+        pygame.draw.ellipse(surface, (200, 165, 95), dirt)
+        pygame.draw.ellipse(surface, (180, 148, 78), dirt, 2)
 
-        # Ridge line — lighter highlight
-        pygame.draw.line(surface, (165, 140, 108),
-                         (ridge_x, r.y + 10), (ridge_x, r.bottom - 10), 4)
+        # ── ROOF — dominant silver peaked gable ───────────────────────
+        # Full roof triangle (base colour)
+        roof_tri = [(PEAK_X, PEAK_Y), (EAVE_L, EAVE_Y), (EAVE_R, EAVE_Y)]
+        pygame.draw.polygon(surface, COLOUR_ROOF_SILVER, roof_tri)
 
-        # Eave outlines (edges of the roof)
-        pygame.draw.polygon(surface, COLOUR_DARK_GREY, left_pts,  2)
-        pygame.draw.polygon(surface, COLOUR_DARK_GREY, right_pts, 2)
+        # Left half slightly darker (shadow side)
+        pygame.draw.polygon(surface, (172, 177, 192), [
+            (PEAK_X, PEAK_Y), (EAVE_L, EAVE_Y), (PEAK_X, EAVE_Y),
+        ])
 
-        # ── Red barn walls visible below eave on south face ──────────
-        # Show just the south-facing wall strip (where the doors are)
-        wall_h = 38
-        wall = pygame.Rect(r.x + 4, r.bottom - wall_h, r.width - 8, wall_h)
+        # Standing-seam panel lines radiating from peak to eave
+        _SEAM = (158, 163, 178)
+        for i in range(1, 11):
+            t = i / 11.0
+            # Left-side seams
+            lx = int(PEAK_X + t * (EAVE_L - PEAK_X))
+            pygame.draw.line(surface, _SEAM, (PEAK_X, PEAK_Y), (lx, EAVE_Y), 1)
+            # Right-side seams
+            rx = int(PEAK_X + t * (EAVE_R - PEAK_X))
+            pygame.draw.line(surface, _SEAM, (PEAK_X, PEAK_Y), (rx, EAVE_Y), 1)
+
+        # Ridge cap highlight (brightest strip at the very peak)
+        pygame.draw.line(surface, (230, 234, 244),
+                         (PEAK_X - 3, PEAK_Y), (PEAK_X + 3, PEAK_Y + 55), 5)
+
+        # Roof outline
+        pygame.draw.polygon(surface, (132, 136, 150), roof_tri, 3)
+
+        # Eave shadow (dark underside of the roof overhang)
+        pygame.draw.rect(surface, (80, 70, 58),
+                         pygame.Rect(EAVE_L, EAVE_Y, EAVE_R - EAVE_L, 16))
+
+        # Gable siding: triangular red strips between overhang and wall
+        pygame.draw.polygon(surface, COLOUR_BARN_RED, [
+            (EAVE_L, EAVE_Y), (BX, EAVE_Y), (BX, PEAK_Y),
+        ])
+        pygame.draw.polygon(surface, COLOUR_BARN_RED, [
+            (EAVE_R, EAVE_Y), (BX + BW, EAVE_Y), (BX + BW, PEAK_Y),
+        ])
+
+        # ── FRONT WALL ────────────────────────────────────────────────
+        wall = pygame.Rect(BX, EAVE_Y, BW, WALL_BOT - EAVE_Y)
         pygame.draw.rect(surface, COLOUR_BARN_RED, wall)
 
-        # Vertical siding lines
-        for bx in range(wall.x + 24, wall.right, 24):
-            pygame.draw.line(surface, (178, 38, 38), (bx, wall.y), (bx, wall.bottom), 1)
+        # Vertical board siding lines
+        for sx in range(BX + 14, BX + BW, 14):
+            pygame.draw.line(surface, (190, 40, 40), (sx, EAVE_Y), (sx, WALL_BOT), 1)
 
-        # White trim
-        pygame.draw.rect(surface, COLOUR_WHITE, wall, 2)
+        # White trim strip under eave
+        pygame.draw.rect(surface, COLOUR_WHITE,
+                         pygame.Rect(BX, EAVE_Y + 16, BW, 10))
 
-        # Double barn doors
-        door_w, door_h = 58, 34
-        door = pygame.Rect(r.centerx - door_w // 2, wall.bottom - door_h, door_w, door_h)
-        pygame.draw.rect(surface, COLOUR_WOOD_DARK, door)
-        pygame.draw.line(surface, COLOUR_DARK_GREY,
-                         (door.centerx, door.top), (door.centerx, door.bottom), 2)
-        for dx, dw in ((door.x, door_w // 2 - 1), (door.centerx + 1, door_w // 2 - 1)):
-            dr = pygame.Rect(dx, door.top, dw, door_h)
-            pygame.draw.line(surface, (80, 50, 24), dr.topleft,  dr.bottomright, 1)
-            pygame.draw.line(surface, (80, 50, 24), dr.topright, dr.bottomleft,  1)
-        pygame.draw.rect(surface, COLOUR_FENCE_POST, door, 2)
+        # ── LOFT WINDOWS ──────────────────────────────────────────────
+        loft_y = EAVE_Y + 36
+        for wx in (BX + BW // 4 - 36, BX + 3 * BW // 4 - 36):
+            wr = pygame.Rect(wx, loft_y, 72, 50)
+            pygame.draw.rect(surface, (190, 215, 235), wr)   # pale blue glass
+            pygame.draw.rect(surface, COLOUR_WHITE, wr, 4)
+            # Cross panes
+            pygame.draw.line(surface, COLOUR_WHITE,
+                             (wr.centerx, wr.y), (wr.centerx, wr.bottom), 3)
+            pygame.draw.line(surface, COLOUR_WHITE,
+                             (wr.x, wr.centery), (wr.right, wr.centery), 2)
 
-        # Overall outline
-        pygame.draw.rect(surface, COLOUR_DARK_GREY, r, 3, border_radius=2)
+        # ── X-BRACE DOUBLE DOORS (two sets) ──────────────────────────
+        DOOR_TOP = EAVE_Y + 100
+        DOOR_H   = WALL_BOT - DOOR_TOP - 2
+        DOOR_W   = 120   # total width of each double-door set
+
+        for door_cx in (BX + BW // 3, BX + 2 * BW // 3):
+            dr = pygame.Rect(door_cx - DOOR_W // 2, DOOR_TOP, DOOR_W, DOOR_H)
+            # White door panels
+            pygame.draw.rect(surface, COLOUR_WHITE, dr)
+            # Centre divider
+            pygame.draw.line(surface, (160, 160, 160),
+                             (dr.centerx, dr.top), (dr.centerx, dr.bottom), 4)
+            # X-brace on left panel
+            lp = pygame.Rect(dr.x, dr.y, dr.w // 2 - 2, dr.h)
+            pygame.draw.line(surface, (150, 150, 150), lp.topleft,  lp.bottomright, 3)
+            pygame.draw.line(surface, (150, 150, 150), lp.topright, lp.bottomleft,  3)
+            # X-brace on right panel
+            rp = pygame.Rect(dr.centerx + 2, dr.y, dr.w // 2 - 2, dr.h)
+            pygame.draw.line(surface, (150, 150, 150), rp.topleft,  rp.bottomright, 3)
+            pygame.draw.line(surface, (150, 150, 150), rp.topright, rp.bottomleft,  3)
+            # Door outline
+            pygame.draw.rect(surface, (78, 78, 78), dr, 3)
+
+        # Wall outline
+        pygame.draw.rect(surface, (175, 34, 34), wall, 2)
+
+        # ── FOUNDATION ────────────────────────────────────────────────
+        foundation = pygame.Rect(BX - 6, WALL_BOT - 10, BW + 12, 22)
+        pygame.draw.rect(surface, (148, 138, 118), foundation)
+        pygame.draw.rect(surface, (108, 98, 85), foundation, 2)
+
+        # ── CUPOLA on roof peak ───────────────────────────────────────
+        CW, CH = 66, 50
+        cup = pygame.Rect(PEAK_X - CW // 2, PEAK_Y, CW, CH)
+        pygame.draw.rect(surface, (75, 56, 40), cup, border_radius=4)
+        # Louvered vents
+        for vx in (cup.x + 5, cup.centerx + 3):
+            vr = pygame.Rect(vx, cup.y + 10, CW // 2 - 8, CH - 20)
+            pygame.draw.rect(surface, COLOUR_WHITE, vr)
+            for vy in range(vr.y + 4, vr.bottom, 7):
+                pygame.draw.line(surface, (175, 175, 175),
+                                 (vr.x, vy), (vr.right, vy), 1)
+        # Mini peaked roof on cupola
+        cup_peak = (PEAK_X, PEAK_Y - 30)
+        pygame.draw.polygon(surface, COLOUR_ROOF_SILVER, [
+            (PEAK_X - CW // 2 - 10, PEAK_Y),
+            cup_peak,
+            (PEAK_X + CW // 2 + 10, PEAK_Y),
+        ])
+        pygame.draw.polygon(surface, (145, 150, 164), [
+            (PEAK_X - CW // 2 - 10, PEAK_Y),
+            cup_peak,
+            (PEAK_X + CW // 2 + 10, PEAK_Y),
+        ], 2)
+        # Weathervane: pole + stylised rooster
+        WVX, WVY = PEAK_X, PEAK_Y - 30
+        pygame.draw.line(surface, (68, 122, 102), (WVX, WVY), (WVX, WVY - 40), 3)
+        # Rooster silhouette (simple circles + beak)
+        pygame.draw.circle(surface, (68, 122, 102), (WVX, WVY - 42), 7)   # body
+        pygame.draw.circle(surface, (68, 122, 102), (WVX + 2, WVY - 52), 5)  # head
+        pygame.draw.polygon(surface, (68, 122, 102), [                    # beak
+            (WVX + 7, WVY - 54), (WVX + 14, WVY - 52), (WVX + 7, WVY - 49),
+        ])
+        pygame.draw.circle(surface, (212, 46, 46), (WVX + 4, WVY - 48), 3)   # wattle
+
+        # ── BLACK BOARD FENCE around yard ────────────────────────────
+        FC  = COLOUR_BARN_FENCE          # (32, 28, 25) near-black
+        FHI = (55, 50, 44)               # highlight
+        POST_W    = 14
+        POST_SPACING = 90
+        RAIL_H    = 7
+        RAIL_GAP  = 28
+
+        # ─ West fence (x=1960, y=10 → y=570) ─
+        for py in range(YARD.y, YARD.bottom, POST_SPACING):
+            pygame.draw.rect(surface, FC,
+                             pygame.Rect(YARD.x - POST_W // 2, py, POST_W,
+                                         min(POST_SPACING - 4, YARD.bottom - py)))
+        for ry in (YARD.y + RAIL_GAP, YARD.y + RAIL_GAP * 2, YARD.bottom - RAIL_GAP):
+            pygame.draw.rect(surface, FC,
+                             pygame.Rect(YARD.x - POST_W // 2, ry, POST_W + 4, RAIL_H))
+
+        # ─ South fence — left of gate (1960 → PEAK_X-110) ─
+        gate_left  = PEAK_X - 110
+        gate_right = PEAK_X + 110
+        for fx in range(YARD.x, gate_left, POST_SPACING):
+            pygame.draw.rect(surface, FC,
+                             pygame.Rect(fx, YARD.bottom - POST_W, POST_SPACING - 4, POST_W))
+        for ry_off in (RAIL_GAP, RAIL_GAP * 2):
+            pygame.draw.rect(surface, FC,
+                             pygame.Rect(YARD.x, YARD.bottom - ry_off - RAIL_H,
+                                         gate_left - YARD.x, RAIL_H))
+
+        # ─ South fence — right of gate (PEAK_X+110 → YARD.right) ─
+        for fx in range(gate_right, YARD.right, POST_SPACING):
+            pygame.draw.rect(surface, FC,
+                             pygame.Rect(fx, YARD.bottom - POST_W, POST_SPACING - 4, POST_W))
+        for ry_off in (RAIL_GAP, RAIL_GAP * 2):
+            pygame.draw.rect(surface, FC,
+                             pygame.Rect(gate_right, YARD.bottom - ry_off - RAIL_H,
+                                         YARD.right - gate_right, RAIL_H))
+
+        # Gate posts (taller, highlighted)
+        for gx in (gate_left, gate_right):
+            pygame.draw.rect(surface, FC,
+                             pygame.Rect(gx - POST_W // 2, YARD.bottom - 70, POST_W, 70))
+            pygame.draw.line(surface, FHI,
+                             (gx - POST_W // 2 + 3, YARD.bottom - 64),
+                             (gx - POST_W // 2 + 3, YARD.bottom - 6), 1)
+
+        # ─ East fence (world right edge — from top to south fence line) ─
+        for py in range(YARD.y, YARD.bottom - POST_W, POST_SPACING):
+            pygame.draw.rect(surface, FC,
+                             pygame.Rect(YARD.right - POST_W, py, POST_W,
+                                         min(POST_SPACING - 4, YARD.bottom - POST_W - py)))
+        for ry in (YARD.y + RAIL_GAP, YARD.y + RAIL_GAP * 2, YARD.bottom - RAIL_GAP - 30):
+            pygame.draw.rect(surface, FC,
+                             pygame.Rect(YARD.right - POST_W - 4, ry, POST_W + 4, RAIL_H))
 
     def _draw_coop(self, surface: pygame.Surface) -> None:
         r = pygame.Rect(*MAP_CHICKEN_COOP_RECT)   # (35, 525, 165, 120)
@@ -569,7 +737,8 @@ class Level:
     # ------------------------------------------------------------------
 
     def _draw_tree_trunks(self, surface: pygame.Surface) -> None:
-        for rect_data in (MAP_APPLE_TREE_RECT, MAP_OAK_TREE_RECT):
+        for rect_data in (MAP_APPLE_TREE_RECT, MAP_OAK_TREE_RECT, MAP_EXTRA_OAK_RECT,
+                          MAP_ORCHARD_TREE_1, MAP_ORCHARD_TREE_2):
             r = pygame.Rect(*rect_data)
             trunk_w = max(16, r.width // 5)
             trunk_h = max(26, r.height // 3)
@@ -583,7 +752,8 @@ class Level:
             pygame.draw.rect(surface, COLOUR_DARK_GREY, trunk, 1, border_radius=3)
 
     def _draw_tree_canopies(self, surface: pygame.Surface) -> None:
-        for rect_data in (MAP_APPLE_TREE_RECT, MAP_OAK_TREE_RECT):
+        for rect_data in (MAP_APPLE_TREE_RECT, MAP_OAK_TREE_RECT, MAP_EXTRA_OAK_RECT,
+                          MAP_ORCHARD_TREE_1, MAP_ORCHARD_TREE_2):
             r      = pygame.Rect(*rect_data)
             cx, cy = r.centerx, r.centery - 8
             radius = min(r.width, r.height) // 2
@@ -610,6 +780,85 @@ class Level:
 
             # Outline
             pygame.draw.circle(surface, (34, 104, 20), (cx, cy), radius, 2)
+
+    def _draw_flower_patches(self, surface: pygame.Surface) -> None:
+        """Scattered flower dots across the grass — purely decorative."""
+        # Fixed positions spread across the world, avoiding structure zones
+        flowers = [
+            # (x, y, colour)
+            (420, 120, (242, 210, 58)),   # yellow
+            (680, 200, (255, 255, 255)),   # white
+            (900, 140, (242, 210, 58)),
+            (1450, 180, (255, 255, 255)),
+            (1680, 200, (242, 210, 58)),
+            (300, 620, (255, 255, 255)),
+            (1500, 620, (242, 210, 58)),
+            (1900, 580, (255, 255, 255)),
+            (450, 900, (242, 210, 58)),
+            (820, 950, (255, 255, 255)),
+            (1650, 900, (242, 210, 58)),
+            (2000, 880, (255, 255, 255)),
+            (350, 1260, (242, 210, 58)),
+            (1100, 1250, (255, 255, 255)),
+            (1750, 1260, (242, 210, 58)),
+        ]
+        for fx, fy, fc in flowers:
+            # 3 petals as small circles around a centre
+            for i in range(5):
+                a = math.radians(i * 72)
+                px = int(fx + 5 * math.cos(a))
+                py = int(fy + 5 * math.sin(a))
+                pygame.draw.circle(surface, fc, (px, py), 3)
+            pygame.draw.circle(surface, (218, 185, 52), (fx, fy), 3)  # yellow centre
+
+    def _draw_sheep_pen(self, surface: pygame.Surface) -> None:
+        r = pygame.Rect(*MAP_SHEEP_PEN_RECT)   # (380, 430, 280, 220)
+        # Bright grass inside
+        pygame.draw.rect(surface, COLOUR_PASTURE, r, border_radius=5)
+        # Sheep
+        for sx, sy in ((r.x+60, r.y+70), (r.x+160, r.y+60), (r.x+100, r.y+150), (r.x+210, r.y+145)):
+            self._draw_sheep(surface, sx, sy)
+        # Fence
+        self._draw_fence(surface, r)
+
+    def _draw_sheep(self, surface: pygame.Surface, cx: int, cy: int) -> None:
+        # Fluffy wool body — cluster of overlapping circles
+        for ox, oy in ((-8,0),(8,0),(0,-7),(0,7),(-5,-5),(5,-5),(-5,5),(5,5)):
+            pygame.draw.circle(surface, COLOUR_SHEEP, (cx+ox, cy+oy), 9)
+        pygame.draw.ellipse(surface, COLOUR_SHEEP, pygame.Rect(cx-12, cy-8, 24, 16))
+        # Face / head
+        pygame.draw.circle(surface, (215, 200, 185), (cx+14, cy-2), 7)
+        pygame.draw.circle(surface, (45, 38, 30), (cx+16, cy-4), 2)  # eye
+        # Legs — tiny dark stubs below body
+        for lx in (cx-6, cx, cx+6):
+            pygame.draw.line(surface, (148, 130, 105), (lx, cy+8), (lx, cy+14), 2)
+        # Outline
+        pygame.draw.ellipse(surface, (195, 188, 178), pygame.Rect(cx-12, cy-8, 24, 16), 1)
+
+    def _draw_pond(self, surface: pygame.Surface) -> None:
+        r = pygame.Rect(*MAP_POND_RECT)   # (1380, 820, 200, 130)
+        cx, cy = r.centerx, r.centery
+        # Outer dark rim
+        pygame.draw.ellipse(surface, (62, 118, 168), r.inflate(8, 6))
+        # Main water body
+        pygame.draw.ellipse(surface, COLOUR_POND, r)
+        # Lighter water highlight — upper-left
+        pygame.draw.ellipse(surface, (118, 188, 235),
+                            pygame.Rect(cx - r.width//3, cy - r.height//3,
+                                        r.width//2, r.height//2))
+        # Lily pad suggestions
+        for lx, ly in ((cx-30, cy+10), (cx+35, cy-15), (cx+10, cy+30)):
+            pygame.draw.circle(surface, (68, 148, 58), (lx, ly), 10)
+            pygame.draw.circle(surface, (88, 172, 72), (lx, ly), 10, 2)
+            pygame.draw.line(surface, (88, 172, 72), (lx, ly), (lx+6, ly-8), 1)
+        # Reeds at edge
+        for rx, ry in ((r.x+12, cy), (r.x+22, cy-18), (r.right-12, cy+8)):
+            pygame.draw.line(surface, (98, 138, 72), (rx, ry+18), (rx, ry-18), 2)
+            pygame.draw.ellipse(surface, (88, 112, 52),
+                                pygame.Rect(rx-3, ry-18, 6, 10))
+        # Ripple rings
+        pygame.draw.ellipse(surface, (78, 148, 205), r, 2)
+        pygame.draw.ellipse(surface, (78, 148, 205), r.inflate(-20, -14), 1)
 
     def _draw_scarecrow(self, surface: pygame.Surface) -> None:
         r  = pygame.Rect(*MAP_SCARECROW_RECT)   # (600, 255, 55, 80)
