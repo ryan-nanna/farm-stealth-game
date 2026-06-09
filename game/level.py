@@ -41,12 +41,15 @@ from game.settings import (
     MAP_COW_PASTURE_RECT,
     MAP_ENTRY_HEIGHT,
     MAP_ENTRY_Y,
+    MAP_HAY_BALE_1_RECT,
+    MAP_HAY_BALE_2_RECT,
     MAP_OAK_TREE_RECT,
     MAP_OLD_SHED_RECT,
     MAP_PATH_LEFT_RECT,
     MAP_PATH_RIGHT_RECT,
     MAP_PIG_PEN_RECT,
     MAP_SCARECROW_RECT,
+    MAP_SILO_RECT,
     MAP_WALL_CENTRE_RECT,
     MAP_WALL_LEFT_RECT,
     MAP_WALL_RIGHT_RECT,
@@ -82,6 +85,9 @@ class Level:
             pygame.Rect(*MAP_CHICKEN_COOP_RECT),
             pygame.Rect(*MAP_OLD_SHED_RECT),
             pygame.Rect(*MAP_PIG_PEN_RECT),
+            pygame.Rect(*MAP_HAY_BALE_1_RECT),
+            pygame.Rect(*MAP_HAY_BALE_2_RECT),
+            pygame.Rect(*MAP_SILO_RECT),
         ]
 
         # Partial cover zones
@@ -288,10 +294,84 @@ class Level:
 
     def _draw_structures(self, surface: pygame.Surface) -> None:
         self._draw_stone_wall(surface)
+        self._draw_hay_bales(surface)
         self._draw_coop(surface)
         self._draw_shed(surface)
         self._draw_well(surface)
+        self._draw_silo(surface)
         self._draw_barn(surface)
+
+    def _draw_hay_bales(self, surface: pygame.Surface) -> None:
+        """Two clusters of round hay bales — full cover, warm golden colour."""
+        for rect_data in (MAP_HAY_BALE_1_RECT, MAP_HAY_BALE_2_RECT):
+            r = pygame.Rect(*rect_data)
+            # Ground shadow under the cluster
+            pygame.draw.ellipse(surface, (165, 132, 70),
+                                pygame.Rect(r.x + 4, r.y + 4, r.width, r.height))
+            # 3 bales arranged in a rough triangle
+            bale_positions = [
+                (r.x + r.width // 4,      r.y + r.height // 2),   # left
+                (r.x + r.width * 3 // 4,  r.y + r.height // 2),   # right
+                (r.centerx,               r.y + r.height // 4),    # back-centre
+            ]
+            for bx, by in bale_positions:
+                br = min(r.width, r.height) // 4
+                # Bale body — warm golden-yellow
+                pygame.draw.circle(surface, (218, 175, 68), (bx, by), br)
+                # Bale wrap rings (darker bands)
+                pygame.draw.circle(surface, (185, 145, 50), (bx, by), br, 3)
+                pygame.draw.circle(surface, (185, 145, 50), (bx, by), br // 2, 2)
+                # Highlight
+                pygame.draw.circle(surface, (238, 202, 98),
+                                   (bx - br // 4, by - br // 4), br // 3)
+                # Outline
+                pygame.draw.circle(surface, (148, 112, 38), (bx, by), br, 2)
+
+    def _draw_silo(self, surface: pygame.Surface) -> None:
+        """Tall stone/concrete silo — full cover near the barn."""
+        r = pygame.Rect(*MAP_SILO_RECT)   # (1940, 30, 100, 130)
+        cx = r.centerx
+
+        # Silo body — grey concrete cylinder (from top-down: a circle)
+        body_r = r.width // 2 - 4
+        body_cy = r.centery + 10
+
+        # Shadow
+        pygame.draw.circle(surface, (115, 112, 108), (cx + 5, body_cy + 5), body_r)
+
+        # Concrete body
+        pygame.draw.circle(surface, (168, 162, 152), (cx, body_cy), body_r)
+
+        # Vertical seam lines (looking down the cylinder)
+        for i in range(6):
+            angle = math.radians(i * 60)
+            sx = int(cx + (body_r - 2) * math.cos(angle))
+            sy = int(body_cy + (body_r - 2) * math.sin(angle))
+            pygame.draw.line(surface, (140, 135, 128), (cx, body_cy), (sx, sy), 1)
+
+        # Outer ring
+        pygame.draw.circle(surface, (128, 122, 114), (cx, body_cy), body_r, 3)
+
+        # Roof cone suggestion — red peaked top visible from above
+        roof_r = body_r - 4
+        pygame.draw.circle(surface, COLOUR_BARN_RED, (cx, body_cy), roof_r)
+        # Roof highlight
+        pygame.draw.circle(surface, (228, 72, 72), (cx - roof_r // 4, body_cy - roof_r // 4), roof_r // 3)
+        # Roof centre point
+        pygame.draw.circle(surface, (170, 35, 35), (cx, body_cy), 5)
+        # Roof outline
+        pygame.draw.circle(surface, (148, 28, 28), (cx, body_cy), roof_r, 2)
+
+        # Ladder on the side — small dark rungs
+        lx = cx + body_r - 4
+        for ly in range(body_cy - body_r + 8, body_cy + body_r - 4, 8):
+            pygame.draw.line(surface, COLOUR_DARK_GREY, (lx - 3, ly), (lx + 3, ly), 1)
+        pygame.draw.line(surface, COLOUR_DARK_GREY,
+                         (lx - 3, body_cy - body_r + 8),
+                         (lx - 3, body_cy + body_r - 4), 1)
+        pygame.draw.line(surface, COLOUR_DARK_GREY,
+                         (lx + 3, body_cy - body_r + 8),
+                         (lx + 3, body_cy + body_r - 4), 1)
 
     def _draw_barn(self, surface: pygame.Surface) -> None:
         r = pygame.Rect(*MAP_BARN_RECT)   # (1060, 15, 205, 150)

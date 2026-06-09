@@ -104,6 +104,11 @@ MAP_PIG_PEN_RECT:      tuple[int, int, int, int] = (2120, 960, 420, 390)  # obje
 MAP_SCARECROW_RECT:    tuple[int, int, int, int] = (1200, 510, 110, 160)  # objective 3
 MAP_WELL_RECT:         tuple[int, int, int, int] = (1550,1060, 180, 130)
 
+# New full-cover hiding spots (balances the tougher Hubert)
+MAP_HAY_BALE_1_RECT:   tuple[int, int, int, int] = (1640, 450, 120,  90)  # mid-right, crossing cover
+MAP_HAY_BALE_2_RECT:   tuple[int, int, int, int] = ( 660,1170, 130,  95)  # bottom-centre
+MAP_SILO_RECT:         tuple[int, int, int, int] = (1940,  30, 100, 130)  # near barn
+
 # Stone wall — three segments across mid-map at y=740.
 # Passage gaps: x=530–870 (340 px) and x=1770–2070 (300 px).
 MAP_WALL_LEFT_RECT:    tuple[int, int, int, int] = (   0, 740, 530,  60)
@@ -142,8 +147,8 @@ HUBERT_WIDTH:          int   = 16
 HUBERT_HEIGHT:         int   = 46
 HUBERT_HEAD_RADIUS:    int   = 10
 HUBERT_HEAD_OFFSET:    int   =  8
-HUBERT_SPEED_LURK:     float = 140.0   # doubled for 2× world
-HUBERT_SPEED_CHASE:    float = 300.0
+HUBERT_SPEED_LURK:     float = 210.0   # ~50% harder than launch
+HUBERT_SPEED_CHASE:    float = 420.0
 HUBERT_SPRITE_W:       int   = 90
 HUBERT_SPRITE_H:       int   = 110
 
@@ -153,8 +158,8 @@ HUBERT_HAIR_COLOUR:       tuple[int, int, int] = ( 75,  42,  22)
 HUBERT_HAT_BRIM_COLOUR:   tuple[int, int, int] = (175, 158, 112)
 HUBERT_HAT_CROWN_COLOUR:  tuple[int, int, int] = (148, 132,  88)
 
-VISION_CONE_RANGE:      float = 440.0   # doubled
-VISION_CONE_HALF_ANGLE: float = 50.0
+VISION_CONE_RANGE:      float = 620.0   # ~50% harder
+VISION_CONE_HALF_ANGLE: float = 60.0   # wider cone
 VISION_CONE_COLOUR:     tuple[int, int, int] = (255, 240, 100)
 VISION_CONE_ALPHA:      int   = 65
 
