@@ -246,22 +246,29 @@ require it. Dealers within noise radius snap to CURIOUS state immediately (issue
 - ✅ Session 7: Gramps + win condition. Round escalation. Full game loop.
 - ✅ Session 8: Scarecrow intel mechanic. HUD polish. README + GitHub cleanup.
 
-### Phase 2 — Art, Enemy Overhaul, Polish (Issues #10–25)
+### Phase 2 — Art, Enemy Overhaul, Polish ✅ Core Complete (Sessions 9–11)
 
-Build in this order:
+- ✅ **Issue #12:** Lurk/hunt state machine — `LURK → CURIOUS → SEARCHING → ALERT → CHASE → LEAVING`
+- ✅ **Issue #10:** Hubert — photo sprite from `assets/sprites/hubert.png`, wide vision cone, slow methodical lurk
+- ✅ **Issue #11:** Hieronymus — photo sprite from `assets/sprites/hieronymus.png`, noise-sensitive (200 px snap radius), fast erratic movement
+- ✅ **Issue #13:** Noise system with real teeth — silent mode matters; objective completion = orange burst
+- ✅ **Issue #22:** Round escalation — dealers faster and further-seeing each round, Hieronymus joins round 2
+- ✅ **Issues #14–17:** Art pass — tractor left-quarter front view, directional sprites (flip on direction change), headlight eye expressions (NORMAL / NERVOUS / FOCUSED / WIDE / HAPPY / SHOCKED)
+- ✅ **Issues #18–20:** Objective polish — particle system on completion, timing bar with zones
+- ✅ **Issue #21:** Title screen implemented
+- ✅ **Issue #23:** Scrap Truck — present every round (not hard mode only); battered pink military-surplus flatbed; patrol pattern rotates each round; contact = game over
+- ✅ **Scrolling camera** — 2560×1440 world, 1280×720 viewport; `Camera` class in `game/systems/camera.py`
+- ✅ **Barn redesign** — front-facing illustrated barn (silver peaked gable roof, X-brace doors, Ferguson red badge, cupola + weathervane, black board fence yard); `MAP_BARN_BODY_RECT` added to `wall_rects` (solid building); `MAP_BARN_RECT` = fence yard = win trigger
+- ✅ **Clunky scarecrow** — bucket head, top hat, black jacket, red bow tie, white gloves, painted-on smiley face (inspired by Little Grey Fergie character)
+- ✅ **Vision cone world-size fix** — vision surfaces now `WORLD_WIDTH × WORLD_HEIGHT`; was `SCREEN_WIDTH × SCREEN_HEIGHT` causing invisible cones in lower half of map
+- ✅ **Rich farm world** — sheep paddock, pond, orchard, extra oaks, flower patches, haystacks, silo left of barn
 
-- **Issue #12:** Replace fixed patrol with lurk/hunt state machine (Hubert + Hieronymus) — *do first*
-- **Issue #10:** Replace generic dealer with Hubert — beard, lurk behaviour
-- **Issue #11:** Add Hieronymus — mismatched socks, noise-sensitive
-- **Issue #13:** Tune noise system — silent mode must matter
-- **Issue #22:** Round escalation tuning for 5-year-old difficulty
-- **Issues #14–17:** Art pass — sprites for tractor, dealers, farm elements, headlight eyes
-- **Issues #18–20:** Objective polish — animations, achievement moments, risk tuning
-- **Issue #21:** Title screen
-- **Issue #23:** Scrap Truck (hard mode, optional — only if game feels too easy)
-- **Issue #24:** Sound design pass — very last
+### Phase 3 — Remaining
 
-Sound and sprite integration are separate phases after gameplay is solid.
+- **Issue #24:** Sound design — engine hum, Gramps bell, caught sting. Last.
+- Title screen art (currently functional but not illustrated)
+- Hubert & Hieronymus sprite polish beyond photo reference
+- Wall/cover hitbox tuning for new tractor size
 
 ---
 
@@ -279,21 +286,8 @@ Sound and sprite integration are separate phases after gameplay is solid.
 
 ## What NOT to Build Yet
 
-- Sound (stubbed only — MusicSystem class exists but does nothing) — Issue #24, last
+- Sound (stubbed only) — Issue #24, last
 - Save system
 - Multiple levels / maps
-- Dealer 4
-- Any backwards-compat shims for old generic Dealer 1/2 naming — just rename
-
-## Now In Scope (Phase 2)
-
-- Named dealers: Hubert and Hieronymus (replace generic Dealer 1/2)
-- Lurk/hunt AI state machine (replace fixed patrol waypoints)
-- Noise system with real teeth — silent mode genuinely necessary
-- Sprite art via PNG assets in `assets/sprites/` replacing shape drawing
-- Headlight eye expressions (animated per game state)
-- Objective animations and mini achievement moments
-- Title screen
-- Round escalation tuning for a confident 5-year-old
-- Scrap Truck (optional, hard mode only)
+- Dealer 4 or 5
 
